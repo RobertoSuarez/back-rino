@@ -15,10 +15,13 @@ export default registerAs('config', () => {
     // },
     apiKey: process.env.API_KEY,
     jwtSecret: process.env.JWT_SECRET,
+    // Comentamos la configuración de Cloudinary para que el proyecto funcione sin esta dependencia
+    /*
     cloudinary: {
       cloudName: process.env.CLOUDINARY_CLOUD_NAME,
       apiKey: process.env.CLOUDINARY_API_KEY,
       apiSecret: process.env.CLOUDINARY_API_SECRET,
     },
+    */
   };
 });

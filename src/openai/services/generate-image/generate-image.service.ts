@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { v2 as cloudinary } from 'cloudinary';
+// import { v2 as cloudinary } from 'cloudinary';
 import { v4 as uuid } from 'uuid';
 import OpenAI from 'openai';
 import { ConfigService } from '@nestjs/config';
@@ -26,6 +26,9 @@ export class GenerateImageService {
       n: 1,
       size: '1024x1024',
     });
+    
+    // Comentamos todo el código relacionado con Cloudinary
+    /*
     const config = {
       cloud_name: this._configService.get('CLOUDINARY_CLOUD_NAME'),
       api_key: this._configService.get('CLOUDINARY_API_KEY'),
@@ -53,16 +56,10 @@ export class GenerateImageService {
         api_key: this._configService.get('CLOUDINARY_API_KEY'),
       },
     );
+    */
 
-    // Subimos la imagen a cloudinary.
-    // const uploadResult = await cloudinary.uploader.upload(
-    //   response.data[0].url,
-    //   {
-    //     public_id: 'dalle3' + uuid(),
-    //   },
-    // );
-
-    return uploadResult.url;
+    // Devolvemos directamente la URL de la imagen generada por OpenAI
+    return response.data[0].url;
   }
 
   async uploadImage(file: Express.Multer.File) {
@@ -72,6 +69,8 @@ export class GenerateImageService {
     );
     fs.writeFileSync(tempFilePath, file.buffer);
 
+    // Comentamos todo el código relacionado con Cloudinary
+    /*
     const config = {
       cloud_name: this._configService.get('CLOUDINARY_CLOUD_NAME'),
       api_key: this._configService.get('CLOUDINARY_API_KEY'),
@@ -97,5 +96,10 @@ export class GenerateImageService {
       api_key: this._configService.get('CLOUDINARY_API_KEY'),
     });
     return uploadResult.url;
+    */
+    
+    // En lugar de subir a Cloudinary, simplemente devolvemos una URL local temporal
+    // Esto es solo un ejemplo, en producción necesitarías implementar un servicio de almacenamiento alternativo
+    return `file://${tempFilePath}`;
   }
 }
