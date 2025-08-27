@@ -29,7 +29,7 @@ export class GenerateImageService {
     const config = {
       cloud_name: this._configService.get('CLOUDINARY_CLOUD_NAME'),
       api_key: this._configService.get('CLOUDINARY_API_KEY'),
-      api_secret: this._configService.get('CLOUDINARY_URL'),
+      api_secret: this._configService.get('CLOUDINARY_API_SECRET'),
     };
     cloudinary.config(config);
 
@@ -75,7 +75,7 @@ export class GenerateImageService {
     const config = {
       cloud_name: this._configService.get('CLOUDINARY_CLOUD_NAME'),
       api_key: this._configService.get('CLOUDINARY_API_KEY'),
-      api_secret: this._configService.get('CLOUDINARY_URL'),
+      api_secret: this._configService.get('CLOUDINARY_API_SECRET'),
     };
     cloudinary.config(config);
 

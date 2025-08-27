@@ -1,58 +1,85 @@
 <p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
+  <img src="https://via.placeholder.com/200x200.png?text=RINO" width="200" alt="Rino Logo" />
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+<h1 align="center">RINO API</h1>
+<p align="center">¡Bienvenidos al backend de Rino! 🦏</p>
 
-  <p align="center">Rino</p>
+## 🚀 Sobre Rino
 
-## Description
+¡Hola! Soy Rino, tu plataforma de aprendizaje favorita. Este repositorio contiene el backend de mi aplicación, construido con NestJS para ofrecerte una experiencia robusta y eficiente.
 
-Rino API is the backend of the Rino application
+Mi misión es transformar la manera en que aprendes y compartes conocimiento. Con mi API, puedes conectarte a un mundo de posibilidades educativas.
 
-## Installation
+## 🛠️ Instalación
+
+Para comenzar a trabajar conmigo, sigue estos sencillos pasos:
 
 ```bash
+# Instalar dependencias
 $ npm install
+
+# Configurar variables de entorno
+# Copia el archivo .env.example a .env y configura tus variables
 ```
 
-## Running the app
+## 🏃‍♂️ Ejecutando la aplicación
 
 ```bash
-# development
+# Modo desarrollo
 $ npm run start
 
-# watch mode with development
+# Modo desarrollo con recarga automática
 $ npm run start:dev
 
-# production mode
+# Modo producción
 $ npm run start:prod
 ```
 
-## Test
+## 🧪 Pruebas
+
+Me gusta asegurarme de que todo funcione correctamente:
 
 ```bash
-# unit tests
+# Pruebas unitarias
 $ npm run test
 
-# e2e tests
+# Pruebas e2e
 $ npm run test:e2e
 
-# test coverage
+# Cobertura de pruebas
 $ npm run test:cov
 ```
 
-## Support
+## 🌟 Características principales
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+- Autenticación segura de usuarios
+- Gestión de cursos y contenido educativo
+- Integración con ChatGPT para experiencias de aprendizaje interactivas
+- Sistema de comunidad para compartir conocimiento
+- Estadísticas detalladas de progreso
 
-## Stay in touch
+## 🤝 Contribuciones
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+¡Me encanta recibir ayuda para mejorar! Si quieres contribuir:
 
-## License
+1. Haz fork del repositorio
+2. Crea una rama para tu funcionalidad (`git checkout -b mi-nueva-funcionalidad`)
+3. Haz commit de tus cambios (`git commit -m 'Añadir nueva funcionalidad'`)
+4. Haz push a la rama (`git push origin mi-nueva-funcionalidad`)
+5. Abre un Pull Request
 
-Nest is [MIT licensed](LICENSE).
+## 📞 Contacto
+
+¿Tienes preguntas o sugerencias? ¡Me encantaría escucharte!
+
+- Email: rino@gmail.com
+- Web: [rino.com](https://rino.com)
+
+## 📄 Licencia
+
+Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
+
+---
+
+<p align="center">Construido con ❤️ por el equipo de Rino</p>
