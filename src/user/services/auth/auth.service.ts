@@ -99,15 +99,36 @@ export class AuthService {
     // Guardamos el token
     this.resetPasswordRepo.save(resetPassword);
 
-    const url = `http://localhost:4200/authentication/change-password?token=${resetPassword.token}`;
+    const url = `http://localhost:4200/auth/reset-password?token=${resetPassword.token}`;
 
     this.mailerService
       .sendMail({
         to: payload.email,
         from: 'rino@gmail.com',
-        subject: 'Recuperación de contraseña',
-        text: 'No este es el correo de recuperación de contraseña',
-        html: `<h4>Recuperación de contraseña</h4><p>Direción para reestablecer la contraseña: ${url} </p>`,
+        subject: 'Recuperación de contraseña - CyberImperium',
+        text: `Hola, has solicitado restablecer tu contraseña. Por favor, haz clic en el siguiente enlace para crear una nueva contraseña: ${url}`,
+        html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="color: #4a6ee0;">Recuperación de Contraseña</h2>
+          </div>
+          <div style="padding: 20px; background-color: #f9f9f9; border-radius: 5px;">
+            <p style="margin-bottom: 15px;">Hola,</p>
+            <p style="margin-bottom: 15px;">Has solicitado restablecer tu contraseña. Haz clic en el botón de abajo para crear una nueva contraseña:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${url}" style="background-color: #4a6ee0; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; font-weight: bold;">Restablecer Contraseña</a>
+            </div>
+            <p style="margin-bottom: 15px;">Si no solicitaste restablecer tu contraseña, puedes ignorar este correo electrónico.</p>
+            <p style="margin-bottom: 15px;">Este enlace expirará en 24 horas por seguridad.</p>
+            <p style="margin-bottom: 5px;">Saludos,</p>
+            <p style="margin-bottom: 15px;">El equipo de CyberImperium</p>
+          </div>
+          <div style="text-align: center; margin-top: 20px; color: #888; font-size: 12px;">
+            <p>Si el botón no funciona, copia y pega el siguiente enlace en tu navegador:</p>
+            <p style="word-break: break-all;">${url}</p>
+          </div>
+        </div>
+        `,
       })
       .then(() => console.log('Enviado'))
       .catch((error) => console.log(error));

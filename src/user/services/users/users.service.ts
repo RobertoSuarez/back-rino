@@ -1,12 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   CreateUserDto,
   LivesWithGemsDto,
   UserUpdateDto,
+  PaginatedUsersResponseDto,
 } from '../../dtos/users.dtos';
 import { User } from '../../../database/entities/user.entity';
-import { Repository } from 'typeorm';
+import { Repository, Like, ILike } from 'typeorm';
 import { DateTime } from 'luxon';
 import { formatDateFrontend } from '../../../common/constants';
 import { StatisticsService } from '../../../statistics/service/statistics/statistics.service';
@@ -69,12 +70,72 @@ export class UsersService {
     await this._userRepo.save(user);
   }
 
-  findById(id: number) {
-    const user = this._userRepo.findOneBy({ id });
+  async findById(id: number) {
+    const user = await this._userRepo.findOneBy({ id });
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
     }
     return user;
+  }
+  
+  async findAll(page: number = 1, limit: number = 10, search?: string): Promise<PaginatedUsersResponseDto> {
+    const skip = (page - 1) * limit;
+    
+    let queryBuilder = this._userRepo.createQueryBuilder('user');
+    
+    if (search) {
+      queryBuilder = queryBuilder
+        .where('user.firstName ILIKE :search', { search: `%${search}%` })
+        .orWhere('user.lastName ILIKE :search', { search: `%${search}%` })
+        .orWhere('user.email ILIKE :search', { search: `%${search}%` });
+    }
+    
+    const [users, total] = await queryBuilder
+      .skip(skip)
+      .take(limit)
+      .orderBy('user.id', 'DESC')
+      .getManyAndCount();
+    
+    return {
+      users: users.map(user => ({
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        birthday: user.birthday,
+        whatsApp: user.whatsApp,
+        urlAvatar: user.urlAvatar
+          ? user.urlAvatar
+          : `https://ui-avatars.com/api/?name=${user.firstName?.split(' ')[0]}+${user.lastName?.split(' ')[0]}&background=1B802F&color=fff`,
+        status: user.status,
+        typeUser: user.typeUser,
+        requiredUpdate: user.requiredUpdate,
+      })),
+      total,
+      page,
+      limit,
+    };
+  }
+  
+  async findOne(id: number) {
+    const user = await this.findById(id);
+    return {
+      statusCode: 200,
+      data: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        birthday: user.birthday ? DateTime.fromJSDate(user.birthday).toFormat(formatDateFrontend) : null,
+        whatsApp: user.whatsApp,
+        urlAvatar: user.urlAvatar
+          ? user.urlAvatar
+          : `https://ui-avatars.com/api/?name=${user.firstName?.split(' ')[0]}+${user.lastName?.split(' ')[0]}&background=1B802F&color=fff`,
+        status: user.status,
+        typeUser: user.typeUser,
+        requiredUpdate: user.requiredUpdate,
+      }
+    };
   }
 
   // createUser crea un usuario en base al dto.
@@ -83,9 +144,34 @@ export class UsersService {
     user.firstName = payload.firstName;
     user.lastName = payload.lastName;
     user.email = payload.email;
-    user.birthday = DateTime.fromFormat(payload.birthday, formatDateFrontend, {
-      zone: 'America/Guayaquil',
-    }).toJSDate();
+    
+    // Manejo seguro de la fecha de nacimiento
+    if (payload.birthday && payload.birthday.trim() !== '') {
+      try {
+        // Intentar parsear con el formato esperado
+        const parsedDate = DateTime.fromFormat(payload.birthday, formatDateFrontend);
+        
+        // Verificar si la fecha es válida
+        if (parsedDate.isValid) {
+          user.birthday = parsedDate.toJSDate();
+        } else {
+          // Intentar con formato alternativo (dd/MM/yyyy)
+          const altParsedDate = DateTime.fromFormat(payload.birthday, 'dd/MM/yyyy');
+          if (altParsedDate.isValid) {
+            user.birthday = altParsedDate.toJSDate();
+          } else {
+            // Si no se puede parsear, dejar como null
+            user.birthday = null;
+          }
+        }
+      } catch (error) {
+        console.log('Error parsing date:', error);
+        user.birthday = null;
+      }
+    } else {
+      user.birthday = null;
+    }
+    
     user.password = payload.password;
     user.typeUser = payload.typeUser;
     user.isVerified = false;
@@ -100,8 +186,10 @@ export class UsersService {
     //TODO: Encriptar la contraseña.
 
     try {
+      console.log(user);
       await this._userRepo.save(user);
     } catch (error) {
+      console.log(error);
       if (error.code === '23505') {
         throw new Error('El usuario ya existe');
       } else {
@@ -115,19 +203,91 @@ export class UsersService {
   }
 
   async updateUser(userId: number, payload: UserUpdateDto) {
-    const user = await this._userRepo.findOneBy({ id: userId });
-    user.firstName = payload.firstName;
-    user.lastName = payload.lastName;
-    user.birthday = DateTime.fromFormat(payload.birthday, formatDateFrontend, {
-      zone: 'America/Guayaquil',
-    }).toJSDate();
-    user.whatsApp = payload.whatsApp;
-    user.urlAvatar = payload.urlAvatar;
+    const user = await this.findById(userId);
+    
+    if (payload.firstName) {
+      user.firstName = payload.firstName;
+    }
+    
+    if (payload.lastName) {
+      user.lastName = payload.lastName;
+    }
+    
+    if (payload.birthday && payload.birthday.trim() !== '') {
+      try {
+        // Intentar parsear con el formato esperado
+        const parsedDate = DateTime.fromFormat(payload.birthday, formatDateFrontend);
+        
+        // Verificar si la fecha es válida
+        if (parsedDate.isValid) {
+          user.birthday = parsedDate.toJSDate();
+        } else {
+          // Intentar con formato alternativo (dd/MM/yyyy)
+          const altParsedDate = DateTime.fromFormat(payload.birthday, 'dd/MM/yyyy');
+          if (altParsedDate.isValid) {
+            user.birthday = altParsedDate.toJSDate();
+          } else {
+            // Si no se puede parsear, mantener la fecha actual
+            console.log('Invalid date format:', payload.birthday);
+          }
+        }
+      } catch (error) {
+        console.log('Error parsing date:', error);
+      }
+    }
+    
+    if (payload.whatsApp !== undefined) {
+      user.whatsApp = payload.whatsApp;
+    }
+    
+    if (payload.urlAvatar !== undefined) {
+      user.urlAvatar = payload.urlAvatar;
+    }
 
     await this._userRepo.save(user);
 
     return {
-      message: 'Usuario actualizado correctamente',
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      birthday: user.birthday ? DateTime.fromJSDate(user.birthday).toFormat(formatDateFrontend) : null,
+      whatsApp: user.whatsApp,
+      urlAvatar: user.urlAvatar,
+      status: user.status,
+      typeUser: user.typeUser,
+    };
+  }
+  
+  async changeUserStatus(userId: number, status: string) {
+    const user = await this.findById(userId);
+    user.status = status;
+    await this._userRepo.save(user);
+    
+    return {
+      id: user.id,
+      status: user.status,
+    };
+  }
+  
+  async resetUserPassword(userId: number, newPassword: string) {
+    const user = await this.findById(userId);
+    user.password = newPassword; // En un caso real, aquí se debería encriptar la contraseña
+    await this._userRepo.save(user);
+    
+    return {
+      id: user.id,
+      message: 'Contraseña restablecida correctamente',
+    };
+  }
+  
+  async deleteUser(userId: number) {
+    const user = await this.findById(userId);
+    await this._userRepo.remove(user);
+    
+    return {
+      id: userId,
+      message: 'Usuario eliminado correctamente',
     };
   }
 

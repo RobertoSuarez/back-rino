@@ -10,6 +10,10 @@ import { AudioService } from './services/audio/audio.service';
 import { QuestionsController } from './controllers/questions/questions.controller';
 import { TemasController } from './controllers/temas/temas.controller';
 import { ParametersModule } from 'src/parameters/parameters.module';
+import { GeminiService } from './services/gemini/gemini.service';
+import { GeminiController } from './controllers/gemini/gemini.controller';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 @Module({
   providers: [
@@ -18,6 +22,7 @@ import { ParametersModule } from 'src/parameters/parameters.module';
     GenerateExercisesService,
     ChaptersGPTService,
     AudioService,
+    GeminiService,
   ],
   exports: [ChatCompletionService, ChaptersGPTService, GenerateImageService],
   controllers: [
@@ -26,7 +31,17 @@ import { ParametersModule } from 'src/parameters/parameters.module';
     AudioController,
     QuestionsController,
     TemasController,
+    GeminiController,
   ],
-  imports: [ParametersModule],
+  imports: [
+    ParametersModule,
+    JwtModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET'),
+        signOptions: { expiresIn: configService.get('JWT_EXPIRES') },
+      }),
+    }),
+  ],
 })
 export class OpenaiModule {}

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpException,
   HttpStatus,
@@ -16,6 +17,7 @@ import {
 import {
   ApiBearerAuth,
   ApiOperation,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -24,9 +26,13 @@ import {
   CreateUserDto,
   LivesWithGemsDto,
   UserUpdateDto,
+  ChangeUserStatusDto,
+  ResetPasswordDto,
 } from '../../../user/dtos/users.dtos';
 import { AuthGuard } from '../../../user/guards/auth/auth.guard';
 import { UsersService } from '../../../user/services/users/users.service';
+import { RolesGuard } from '../../../user/guards/roles/roles.guard';
+import { Roles } from '../../../user/decorators/roles.decorator';
 
 @ApiTags('Usuarios')
 @Controller('users')
@@ -37,9 +43,33 @@ export class UsersController {
   ) {}
 
   @Get('search')
-  @ApiOperation({ summary: 'Recupera todos los usuarios' })
-  async findAll(@Query('query') query: string) {
+  @ApiOperation({ summary: 'Busca usuarios por nombre, apellido o email' })
+  @ApiQuery({ name: 'query', required: true, description: 'Término de búsqueda' })
+  async searchUsers(@Query('query') query: string) {
     return await this._usersService.searchUser(query);
+  }
+  
+  @Get()
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiOperation({ summary: 'Recupera todos los usuarios con paginación' })
+  @ApiQuery({ name: 'page', required: false, description: 'Número de página' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Límite de resultados por página' })
+  @ApiQuery({ name: 'search', required: false, description: 'Término de búsqueda opcional' })
+  async findAll(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Query('search') search?: string,
+  ) {
+    return await this._usersService.findAll(page, limit, search);
+  }
+  
+  @Get(':id')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiOperation({ summary: 'Obtiene un usuario por su ID' })
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    return await this._usersService.findOne(id);
   }
 
   @Get('teacher-list')
@@ -60,11 +90,17 @@ export class UsersController {
   }
 
   @Post()
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('admin')
   @ApiOperation({ summary: 'Registra un nuevo usuario' })
   async createUser(@Body() payload: CreateUserDto) {
     try {
       const response = await this._usersService.createUser(payload);
-      return response;
+      return {
+        statusCode: 201,
+        message: 'Usuario creado correctamente',
+        data: response
+      };
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
@@ -95,11 +131,72 @@ export class UsersController {
     return result;
   }
 
-  @Put()
+  @Put('profile')
   @UseGuards(AuthGuard)
-  async updateUser(@Request() req, @Body() payload: UserUpdateDto) {
+  @ApiOperation({ summary: 'Actualiza el perfil del usuario actual' })
+  async updateProfile(@Request() req, @Body() payload: UserUpdateDto) {
     const { id: userId } = req.user;
-
-    return this._usersService.updateUser(userId, payload);
+    return {
+      statusCode: 200,
+      message: 'Perfil actualizado correctamente',
+      data: await this._usersService.updateUser(userId, payload)
+    };
+  }
+  
+  @Put(':id')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiOperation({ summary: 'Actualiza un usuario por su ID' })
+  async updateUser(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: UserUpdateDto
+  ) {
+    return {
+      statusCode: 200,
+      message: 'Usuario actualizado correctamente',
+      data: await this._usersService.updateUser(id, payload)
+    };
+  }
+  
+  @Put(':id/status')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiOperation({ summary: 'Cambia el estado de un usuario (activar/desactivar)' })
+  async changeUserStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: ChangeUserStatusDto
+  ) {
+    return {
+      statusCode: 200,
+      message: `Usuario ${payload.status === 'active' ? 'activado' : 'desactivado'} correctamente`,
+      data: await this._usersService.changeUserStatus(id, payload.status)
+    };
+  }
+  
+  @Put(':id/reset-password')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiOperation({ summary: 'Restablece la contraseña de un usuario' })
+  async resetUserPassword(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: ResetPasswordDto
+  ) {
+    return {
+      statusCode: 200,
+      message: 'Contraseña restablecida correctamente',
+      data: await this._usersService.resetUserPassword(id, payload.newPassword)
+    };
+  }
+  
+  @Delete(':id')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiOperation({ summary: 'Elimina un usuario' })
+  async deleteUser(@Param('id', ParseIntPipe) id: number) {
+    return {
+      statusCode: 200,
+      message: 'Usuario eliminado correctamente',
+      data: await this._usersService.deleteUser(id)
+    };
   }
 }

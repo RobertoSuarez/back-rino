@@ -22,6 +22,7 @@
     "db:sync": "node src/database/scripts/db-sync.js sync"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@nestjs-modules/mailer": "^1.11.2",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^3.2.2",

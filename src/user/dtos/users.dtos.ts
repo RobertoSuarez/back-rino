@@ -7,6 +7,8 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  MinLength,
+  IsDate,
 } from 'class-validator';
 
 export class UserDto {
@@ -131,4 +133,33 @@ export class LivesWithGemsDto {
   @IsInt()
   @IsNotEmpty()
   gems: number;
+}
+
+export class ChangeUserStatusDto {
+  @ApiProperty({ enum: ['active', 'inactive'] })
+  @IsEnum(['active', 'inactive'], { message: 'El estado debe ser active o inactive' })
+  @IsNotEmpty({ message: 'El estado es requerido' })
+  status: string;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty()
+  @IsString({ message: 'La nueva contraseña debe ser un string' })
+  @IsNotEmpty({ message: 'La nueva contraseña es requerida' })
+  @MinLength(6, { message: 'La contraseña debe tener al menos 6 caracteres' })
+  newPassword: string;
+}
+
+export class PaginatedUsersResponseDto {
+  @ApiProperty()
+  users: UserDto[];
+
+  @ApiProperty()
+  total: number;
+
+  @ApiProperty()
+  page: number;
+
+  @ApiProperty()
+  limit: number;
 }
