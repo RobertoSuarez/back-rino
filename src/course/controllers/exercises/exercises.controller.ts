@@ -41,12 +41,10 @@ export class ExercisesController {
     type: 'integer',
   })
   async getExercises(
-    @Query('temaId', ParseIntPipe)
-    temaId: number,
-    @Query('activity')
-    activity: string,
+    @Query('activityId', ParseIntPipe)
+    activityId: number,
   ) {
-    return await this.exercisesService.getExercises(temaId, activity);
+    return await this.exercisesService.getExercises(activityId);
   }
 
   @Get('practice')

@@ -39,34 +39,17 @@ export class ExercisesService {
     'Eres genial, muchas gracias por tu dedicación',
   ];
 
-  async getExercises(temaId: number, activity: string) {
-    const exercisesQuery = this.exerciseRepo
-      .createQueryBuilder('exercise')
-      .innerJoinAndSelect('exercise.activity', 'activity')
-      .innerJoin('activity.tema', 'tema', 'tema.id = :temaId', {
-        temaId: temaId,
-      })
-      .orderBy('exercise.id', 'ASC');
-
-    if (activity) {
-      let value = activity;
-      switch (activity) {
-        case 'actividad1':
-          value = 'Actividad 1';
-          break;
-        case 'actividad2':
-          value = 'Actividad 2';
-          break;
-        case 'actividad3':
-          value = 'Actividad 3';
-          break;
-      }
-      exercisesQuery.andWhere('activity.title = :activity', {
-        activity: value,
-      });
-    }
-
-    const exercises = await exercisesQuery.getMany();
+  async getExercises(activityId: number) {
+    const exercises = await this.exerciseRepo.find({
+      where: {
+        activity: {
+          id: activityId,
+        },
+      },
+      relations: {
+        activity: true,
+      },
+    });
 
     const result = exercises.map((e) => {
       return {

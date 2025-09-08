@@ -4,8 +4,6 @@ import { ActivityProgressUser } from '../../../database/entities/activityProgres
 import { User } from '../../../database/entities/user.entity';
 import { Repository } from 'typeorm';
 import { Course } from 'src/database/entities/course.entity';
-import { Classes } from 'src/database/entities/classes.entity';
-import { Assessment } from 'src/database/entities/assessment.entity';
 
 @Injectable()
 export class StatisticsService {
@@ -15,11 +13,7 @@ export class StatisticsService {
     @InjectRepository(ActivityProgressUser)
     private _activityProgressUserRepository: Repository<ActivityProgressUser>,
     @InjectRepository(Course)
-    private _courseRepository: Repository<Course>,
-    @InjectRepository(Classes)
-    private _classesRepository: Repository<Classes>,
-    @InjectRepository(Assessment)
-    private _assessmentRepository: Repository<Assessment>,
+    private _courseRepository: Repository<Course>
   ) {}
 
   async getTopUsers() {
@@ -53,27 +47,11 @@ export class StatisticsService {
       },
     });
 
-    const countClass = await this._classesRepository.count({
-      where: {
-        teacher: {
-          id: userId,
-        },
-      },
-    });
-
-    const assessmentPending = await this._assessmentRepository
-      .createQueryBuilder('assessment')
-      .leftJoin('assessment.class', 'class')
-      .where('class.teacherId = :userId ', {
-        userId,
-      })
-      .andWhere('now() < assessment.finished')
-      .getCount();
-
+    // Ya no usamos Classes ni Assessment
     return {
       countCourses,
-      countClass,
-      assessmentPending,
+      countClass: 0,
+      assessmentPending: 0,
     };
   }
 

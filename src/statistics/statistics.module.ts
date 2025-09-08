@@ -7,8 +7,13 @@ import { ActivityProgressUser } from '../database/entities/activityProgress.enti
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Course } from 'src/database/entities/course.entity';
-import { Assessment } from 'src/database/entities/assessment.entity';
-import { Classes } from 'src/database/entities/classes.entity';
+import { Chapter } from 'src/database/entities/chapter.entity';
+import { Tema } from 'src/database/entities/tema.entity';
+import { Activity } from 'src/database/entities/activity.entity';
+import { ChapterProgressUser } from 'src/database/entities/chapterProgressUser.entity';
+import { TemaProgressUser } from 'src/database/entities/temaProgressUser.entity';
+import { AdminStatisticsController } from './controllers/admin-statistics/admin-statistics.controller';
+import { AdminStatisticsService } from './service/admin-statistics/admin-statistics.service';
 
 @Module({
   imports: [
@@ -16,8 +21,11 @@ import { Classes } from 'src/database/entities/classes.entity';
       User,
       ActivityProgressUser,
       Course,
-      Assessment,
-      Classes,
+      Chapter,
+      Tema,
+      Activity,
+      ChapterProgressUser,
+      TemaProgressUser,
     ]),
     JwtModule.registerAsync({
       inject: [ConfigService],
@@ -27,8 +35,8 @@ import { Classes } from 'src/database/entities/classes.entity';
       }),
     }),
   ],
-  controllers: [StatisticsController],
-  providers: [StatisticsService],
+  controllers: [StatisticsController, AdminStatisticsController],
+  providers: [StatisticsService, AdminStatisticsService],
   exports: [StatisticsService],
 })
 export class StatisticsModule {}
