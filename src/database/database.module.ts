@@ -25,7 +25,7 @@ import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
           ],
           synchronize: true, // true en desarrollo, false en producción
           ssl: sslOption,
-          logging: ConfigService.get('NODE_ENV') !== 'production', // Activar logs en desarrollo
+          logging: false, // Activar logs en desarrollo
           autoLoadEntities: true, // Cargar automáticamente las entidades registradas en los módulos
         };
         console.log('Config: ', config);

@@ -294,11 +294,21 @@ export class UsersService {
   async getLivesWithGems(userId: number) {
     const user = await this._userRepo.findOneBy({ id: userId });
     const result: LivesWithGemsDto = {
-      lives: user.lives,
-      gems: user.gems,
+      lives: user.tumis,
+      gems: user.yachay,
     };
 
     return result;
+  }
+
+  async getUserIndicators(userId: number) {
+    console.log('userId: ', userId);
+    const user = await this._userRepo.findOneBy({ id: userId });
+    return {
+      yachay: user.yachay,
+      tumis: user.tumis,
+      mullu: user.mullu,
+    };
   }
 
   // Establecemos las vidas y los gemas.
@@ -307,13 +317,13 @@ export class UsersService {
     payload: LivesWithGemsDto,
   ): Promise<LivesWithGemsDto> {
     const user = await this._userRepo.findOneBy({ id: userId });
-    user.lives = payload.lives;
-    user.gems = payload.gems;
+    user.tumis = payload.lives;
+    user.yachay = payload.gems;
     await this._userRepo.save(user);
 
     return {
-      lives: user.lives,
-      gems: user.gems,
+      lives: user.tumis,
+      gems: user.yachay,
     };
   }
 
@@ -348,7 +358,7 @@ export class UsersService {
       email: user.email,
       followers,
       score: score,
-      gem: user.gems,
+      gem: user.yachay,
     };
   }
 }

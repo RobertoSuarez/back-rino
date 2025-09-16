@@ -31,7 +31,7 @@ export class CoursesService {
       .leftJoinAndSelect('course.createdBy', 'createdBy')
       .leftJoinAndSelect('course.chapters', 'chapters')
       .where('course.deletedAt IS NULL AND course.isPublic = true')
-      .orderBy('course.index', 'ASC')
+      .orderBy('course.createdAt', 'ASC')
       .getMany();
 
     const result = courses.map((course) => ({
@@ -55,7 +55,7 @@ export class CoursesService {
   }
 
   async findCourseById(courseId: number) {
-    const course = await this.courseRepo.findOneBy({ id: courseId });
+    const course = await this.courseRepo.findOne({ where: { id: courseId }, relations: { createdBy: true } });
     if (!course) {
       throw new Error('Course not found');
     }
@@ -119,7 +119,7 @@ export class CoursesService {
       id: course.id,
       title: course.title,
       createdBy: course.createdBy.firstName + ' ' + course.createdBy.lastName,
-      chapters: `${course.chapters.length} capítulos`,
+      chapters: `${course.chapters.length}`,
       code: course.code,
       urlLogo: course.urlLogo,
       index: course.index,

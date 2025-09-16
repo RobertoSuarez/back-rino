@@ -28,6 +28,7 @@ import {
   UserUpdateDto,
   ChangeUserStatusDto,
   ResetPasswordDto,
+  UserIndicatorsDto,
 } from '../../../user/dtos/users.dtos';
 import { AuthGuard } from '../../../user/guards/auth/auth.guard';
 import { UsersService } from '../../../user/services/users/users.service';
@@ -41,6 +42,13 @@ export class UsersController {
     private _usersService: UsersService,
     private courseService: CoursesService,
   ) {}
+
+  @Get('indicators')
+  @UseGuards(AuthGuard)
+  async getUserIndicators(@Request() req) {
+    const indicators = await this._usersService.getUserIndicators(req.user.id);
+    return indicators;
+  }
 
   @Get('search')
   @ApiOperation({ summary: 'Busca usuarios por nombre, apellido o email' })
@@ -111,7 +119,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Obtiene las vidas y los gemas del usuario' })
   @Get('lives-with-gems')
   async getLives(@Request() req) {
-    const { id } = req.user;
+    const id = parseInt(req.user.id, 10);
     const result = await this._usersService.getLivesWithGems(id);
     return result;
   }

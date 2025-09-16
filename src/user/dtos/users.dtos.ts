@@ -150,6 +150,20 @@ export class ResetPasswordDto {
   newPassword: string;
 }
 
+export class UserIndicatorsDto {
+  @ApiProperty()
+  @IsInt()
+  yachay: number;
+
+  @ApiProperty()
+  @IsInt()
+  tumis: number;
+
+  @ApiProperty()
+  @IsInt()
+  mullu: number;
+}
+
 export class PaginatedUsersResponseDto {
   @ApiProperty()
   users: UserDto[];

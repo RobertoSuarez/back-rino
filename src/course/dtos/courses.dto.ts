@@ -30,6 +30,19 @@ export class CourseDto {
   @Expose()
   @ApiProperty()
   isPublic: boolean;
+
+
+  @Expose()
+  @ApiProperty()
+  createdBy: string;
+
+  @Expose()
+  @ApiProperty()
+  createdAt: string;
+
+  @Expose()
+  @ApiProperty()
+  updatedAt: string;
 }
 
 export class CreateCourseDto {

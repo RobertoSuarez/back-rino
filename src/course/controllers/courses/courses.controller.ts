@@ -25,6 +25,8 @@ import {
 import { CoursesService } from '../../../course/services/courses/courses.service';
 import { GenerateImageService } from '../../../openai/services/generate-image/generate-image.service';
 import { AuthGuard } from '../../../user/guards/auth/auth.guard';
+import { DateTime } from 'luxon';
+import { formatDateFrontend } from 'src/common/constants';
 
 @ApiTags('courses')
 @Controller('courses')
@@ -88,10 +90,19 @@ export class CoursesController {
   @Get(':id')
   async getCourseByID(@Param('id', ParseIntPipe) courseId: number) {
     const course = await this.coursesService.findCourseById(courseId);
-    const result = plainToClass(CourseDto, course, {
-      excludeExtraneousValues: true,
-    });
-    return result;
+    return {
+      id: course.id,
+      title: course.title,
+      description: course.description,
+      code: course.code,
+      urlLogo: course.urlLogo,
+      index: course.index,
+      isPublic: course.isPublic,
+      createdBy: course.createdBy.firstName + ' ' + course.createdBy.lastName,
+      updatedAt: DateTime.fromISO(course.updatedAt.toISOString())
+        .setZone('America/Guayaquil')
+        .toFormat("dd-MMM-yyyy"),
+    };
   }
 
   @ApiOperation({ summary: 'Crea un curso y registra quien lo creo.' })

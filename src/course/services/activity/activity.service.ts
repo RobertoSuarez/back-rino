@@ -210,7 +210,7 @@ export class ActivityService {
     }
 
     this.userRepo.findOneBy({ id: userId }).then((user) => {
-      user.gems += gems;
+      user.yachay += gems;
       this.userRepo.save(user);
     });
 

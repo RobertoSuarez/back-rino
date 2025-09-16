@@ -64,10 +64,13 @@ export class User extends BaseTable {
   requiredUpdate: boolean;
 
   @Column({ default: 0 })
-  lives: number;
+  yachay: number;
 
   @Column({ default: 0 })
-  gems: number;
+  tumis: number;
+
+  @Column({ default: 0 })
+  mullu: number;
 
   @Column({ default: 0 })
   loginAmount: number;
