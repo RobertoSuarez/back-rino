@@ -11,7 +11,7 @@ import {
 import { Activity } from '../../../database/entities/activity.entity';
 import { Exercise } from '../../../database/entities/exercise.entity';
 import { Repository } from 'typeorm';
-import { ChatCompletionService } from '../../../openai/services/chat-completation/chat-completation.service';
+import { GeminiService } from '../../../openai/services/gemini/gemini.service';
 import { DateTime } from 'luxon';
 import { formatDateFrontend } from '../../../common/constants';
 
@@ -20,7 +20,7 @@ export class ExercisesService {
   constructor(
     @InjectRepository(Exercise) private exerciseRepo: Repository<Exercise>,
     @InjectRepository(Activity) private activityRepo: Repository<Activity>,
-    private chatCompletionService: ChatCompletionService,
+    private geminiService: GeminiService,
   ) {}
 
   frasesPositivas: string[] = [
@@ -277,7 +277,7 @@ export class ExercisesService {
     switch (exercise.typeExercise) {
       case 'selection_single':
         result =
-          await this.chatCompletionService.getFeedbackExerciseSelectionSingle(
+          await this.geminiService.getFeedbackExerciseSelectionSingle(
             answer.answerSelect,
             exercise.answerSelectCorrect,
             exercise.statement,
@@ -317,7 +317,7 @@ export class ExercisesService {
         result.qualification = Math.round(result.qualification * 100) / 100;
 
         const { feedback } =
-          await this.chatCompletionService.getFeedbackExerciseSelectionMultiple(
+          await this.geminiService.getFeedbackExerciseSelectionMultiple(
             exercise.statement,
             exercise.answerSelectsCorrect,
             answer.answerSelects,
@@ -339,7 +339,7 @@ export class ExercisesService {
 
       case 'order_fragment_code':
         result =
-          await this.chatCompletionService.getFeedbackExerciseOrdenFragmentCode(
+          await this.geminiService.getFeedbackExerciseOrdenFragmentCode(
             exercise.statement,
             exercise.answerOrderFragmentCode,
             answer.answerOrderFragmentCode,
@@ -361,7 +361,7 @@ export class ExercisesService {
 
       case 'order_line_code':
         result =
-          await this.chatCompletionService.getFeedbackExerciseOrderLineCode(
+          await this.geminiService.getFeedbackExerciseOrderLineCode(
             exercise.statement,
             exercise.answerOrderLineCode,
             answer.answerOrderLineCode,
@@ -382,7 +382,7 @@ export class ExercisesService {
         break;
 
       case 'write_code':
-        result = await this.chatCompletionService.getFeedbackExerciseWriteCode(
+        result = await this.geminiService.getFeedbackExerciseWriteCode(
           exercise.statement,
           answer.answerWriteCode,
         );
@@ -390,7 +390,7 @@ export class ExercisesService {
         break;
       case 'find_error_code':
         const { feedback: f } =
-          await this.chatCompletionService.getFeedbackExerciseFindError(
+          await this.geminiService.getFeedbackExerciseFindError(
             exercise.statement,
             exercise.answerFindError,
             answer.answerFindError,

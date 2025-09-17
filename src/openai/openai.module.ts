@@ -24,7 +24,7 @@ import { ConfigService } from '@nestjs/config';
     AudioService,
     GeminiService,
   ],
-  exports: [ChatCompletionService, ChaptersGPTService, GenerateImageService],
+  exports: [ChatCompletionService, ChaptersGPTService, GenerateImageService, GeminiService],
   controllers: [
     ImagesController,
     ExercisesController,

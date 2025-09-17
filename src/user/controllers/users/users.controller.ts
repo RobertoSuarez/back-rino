@@ -98,8 +98,6 @@ export class UsersController {
   }
 
   @Post()
-  @UseGuards(AuthGuard, RolesGuard)
-  @Roles('admin')
   @ApiOperation({ summary: 'Registra un nuevo usuario' })
   async createUser(@Body() payload: CreateUserDto) {
     try {

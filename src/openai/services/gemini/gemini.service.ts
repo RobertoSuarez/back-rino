@@ -5,6 +5,7 @@ import {
   HarmCategory,
   HarmBlockThreshold,
 } from '@google/generative-ai';
+import { FeedbackExerciseDto } from '../../../course/dtos/exercises.dtos';
 
 @Injectable()
 export class GeminiService {
@@ -87,6 +88,272 @@ export class GeminiService {
     const theory = await this.generateContent(theoryPrompt);
 
     return { shortDescription, theory };
+  }
+
+  /**
+   * Genera feedback para ejercicio de selección única
+   * @param answerSelect Respuesta del usuario
+   * @param answerSelectCorrect Respuesta correcta
+   * @param statement Enunciado del ejercicio
+   * @returns Feedback con calificación
+   */
+  async getFeedbackExerciseSelectionSingle(
+    answerSelect: string,
+    answerSelectCorrect: string,
+    statement: string,
+  ): Promise<FeedbackExerciseDto> {
+    const prompt = `Evalúa la respuesta del usuario y proporciona retroalimentación educativa.
+
+PREGUNTA: ${statement}
+RESPUESTA CORRECTA: ${answerSelectCorrect}
+RESPUESTA DEL USUARIO: ${answerSelect}
+
+INSTRUCCIONES:
+- Si la respuesta es correcta, felicita al usuario
+- Si es incorrecta, explica por qué y proporciona la información correcta
+- Sé constructivo y educativo
+
+IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional:
+
+{
+  "qualification": [número entero del 0 al 10],
+  "feedback": "[tu retroalimentación educativa aquí]"
+}`;
+
+    return this.getFeedbackExerciseGeneric(prompt);
+  }
+
+  /**
+   * Genera feedback para ejercicio de selección múltiple
+   * @param statement Enunciado del ejercicio
+   * @param answerSelectsCorrect Respuestas correctas
+   * @param answerSelect Respuestas del usuario
+   * @returns Feedback con calificación
+   */
+  async getFeedbackExerciseSelectionMultiple(
+    statement: string,
+    answerSelectsCorrect: string[],
+    answerSelect: string[],
+  ): Promise<FeedbackExerciseDto> {
+    const prompt = `Evalúa la respuesta del usuario en un ejercicio de selección múltiple.
+
+PREGUNTA: ${statement}
+RESPUESTAS CORRECTAS: ${answerSelectsCorrect.join(', ')}
+RESPUESTAS DEL USUARIO: ${answerSelect.join(', ')}
+
+INSTRUCCIONES:
+- Menciona qué opciones seleccionó correctamente y cuáles no
+- Explica por qué cada opción es correcta o incorrecta
+- Proporciona retroalimentación constructiva y educativa
+
+IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional:
+
+{
+  "qualification": [número entero del 0 al 10],
+  "feedback": "[tu retroalimentación educativa aquí]"
+}`;
+
+    return this.getFeedbackExerciseGeneric(prompt);
+  }
+
+  /**
+   * Genera feedback para ejercicio de ordenar fragmentos de código
+   * @param statement Enunciado del ejercicio
+   * @param answerOrderFragmentCodeCorrect Orden correcto
+   * @param answerOrderFragmentCodeUser Orden del usuario
+   * @returns Feedback con calificación
+   */
+  async getFeedbackExerciseOrdenFragmentCode(
+    statement: string,
+    answerOrderFragmentCodeCorrect: string[],
+    answerOrderFragmentCodeUser: string[],
+  ): Promise<FeedbackExerciseDto> {
+    const prompt = `Necesito que me des una retroalimentación educativa para un ejercicio de ordenar fragmentos de código.
+      Esta es la Pregunta: ${statement}
+      Este es el orden correcto: ${answerOrderFragmentCodeCorrect.join(' -> ')}
+      El orden del usuario: ${answerOrderFragmentCodeUser.join(' -> ')}
+      
+      Por favor, proporciona una retroalimentación constructiva sobre el orden de los fragmentos de código.
+      
+      Responde en formato JSON con la siguiente estructura:
+      {
+        "qualification": [número del 0 al 10],
+        "feedback": "[tu retroalimentación aquí]"
+      }`;
+
+    return this.getFeedbackExerciseGeneric(prompt);
+  }
+
+  /**
+   * Genera feedback para ejercicio de ordenar líneas de código
+   * @param statement Enunciado del ejercicio
+   * @param answerOrderLineCode Orden correcto
+   * @param answerOrderLineCodeUser Orden del usuario
+   * @returns Feedback con calificación
+   */
+  async getFeedbackExerciseOrderLineCode(
+    statement: string,
+    answerOrderLineCode: string[],
+    answerOrderLineCodeUser: string[],
+  ): Promise<FeedbackExerciseDto> {
+    const prompt = `Necesito que me des una retroalimentación educativa para un ejercicio de ordenar líneas de código.
+      Esta es la Pregunta: ${statement}
+      Este es el orden correcto: ${answerOrderLineCode.join('\n')}
+      El orden del usuario: ${answerOrderLineCodeUser.join('\n')}
+      
+      Por favor, proporciona una retroalimentación constructiva sobre el orden de las líneas de código.
+      
+      Responde en formato JSON con la siguiente estructura:
+      {
+        "qualification": [número del 0 al 10],
+        "feedback": "[tu retroalimentación aquí]"
+      }`;
+
+    return this.getFeedbackExerciseGeneric(prompt);
+  }
+
+  /**
+   * Genera feedback para ejercicio de encontrar errores
+   * @param statement Enunciado del ejercicio
+   * @param correctAnswerFindError Respuesta correcta
+   * @param userAnswerFindError Respuesta del usuario
+   * @returns Feedback con calificación
+   */
+  async getFeedbackExerciseFindError(
+    statement: string,
+    correctAnswerFindError: string,
+    userAnswerFindError: string,
+  ): Promise<FeedbackExerciseDto> {
+    const prompt = `Necesito que me des una retroalimentación educativa para un ejercicio de encontrar errores.
+      Esta es la Pregunta: ${statement}
+      La respuesta correcta: ${correctAnswerFindError}
+      La respuesta del usuario: ${userAnswerFindError}
+      
+      Por favor, proporciona una retroalimentación constructiva sobre la identificación del error.
+      
+      Responde en formato JSON con la siguiente estructura:
+      {
+        "qualification": [número del 0 al 10],
+        "feedback": "[tu retroalimentación aquí]"
+      }`;
+
+    return this.getFeedbackExerciseGeneric(prompt);
+  }
+
+  /**
+   * Genera feedback para ejercicio de escribir código
+   * @param statement Enunciado del ejercicio
+   * @param answer Respuesta del usuario
+   * @returns Feedback con calificación
+   */
+  async getFeedbackExerciseWriteCode(
+    statement: string,
+    answer: string,
+  ): Promise<FeedbackExerciseDto> {
+    const prompt = `Necesito que me des una retroalimentación educativa para un ejercicio de escribir código.
+      Esta es la Pregunta: ${statement}
+      La respuesta del usuario: ${answer}
+      
+      Por favor, evalúa el código del usuario considerando:
+      - Correctitud sintáctica
+      - Lógica de programación
+      - Buenas prácticas
+      - Cumplimiento del objetivo
+      
+      Proporciona una retroalimentación constructiva y educativa.
+      
+      Responde en formato JSON con la siguiente estructura:
+      {
+        "qualification": [número del 0 al 10],
+        "feedback": "[tu retroalimentación aquí]"
+      }`;
+
+    return this.getFeedbackExerciseGeneric(prompt);
+  }
+
+  /**
+   * Método genérico para generar feedback de ejercicios
+   * @param prompt Prompt para la generación
+   * @returns Feedback con calificación
+   */
+  private async getFeedbackExerciseGeneric(prompt: string): Promise<FeedbackExerciseDto> {
+    try {
+      const generationConfig = {
+        temperature: 0.3, // Más determinística para respuestas consistentes
+        topK: 20,
+        topP: 0.8,
+        maxOutputTokens: 512, // Suficiente para feedback conciso
+      };
+
+      const safetySettings = [
+        {
+          category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+      ];
+
+      const result = await this.model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig,
+        safetySettings,
+      });
+
+      const response = result.response;
+      const text = response.text();
+      
+      // Intentar extraer JSON de la respuesta
+      try {
+        // Buscar el JSON en el texto usando regex
+        const jsonMatch = text.match(/\{[\s\S]*?\}/);
+        
+        if (jsonMatch) {
+          const jsonString = jsonMatch[0];
+          const jsonResponse = JSON.parse(jsonString);
+          
+          return {
+            qualification: Number(jsonResponse.qualification) || 0,
+            feedback: jsonResponse.feedback || 'Retroalimentación no disponible',
+          };
+        } else {
+          // Si no encuentra JSON, intentar parsear todo el texto
+          const jsonResponse = JSON.parse(text);
+          return {
+            qualification: Number(jsonResponse.qualification) || 0,
+            feedback: jsonResponse.feedback || text,
+          };
+        }
+      } catch (parseError) {
+        // Si no se puede parsear como JSON, extraer información manualmente
+        console.warn('No se pudo parsear JSON de Gemini, usando texto completo:', text);
+        
+        // Intentar extraer calificación del texto si está presente
+        const qualificationMatch = text.match(/(?:qualification|calificación|puntuación)[\s:]*(\d+(?:\.\d+)?)/i);
+        const qualification = qualificationMatch ? Number(qualificationMatch[1]) : 5;
+        
+        return {
+          qualification: Math.min(Math.max(qualification, 0), 10), // Asegurar que esté entre 0 y 10
+          feedback: text.replace(/```json|```/g, '').trim(), // Limpiar markdown si existe
+        };
+      }
+    } catch (error) {
+      console.error('Error al generar feedback con Gemini:', error);
+      return {
+        qualification: 0,
+        feedback: 'Error al generar retroalimentación. Por favor, inténtalo de nuevo.',
+      };
+    }
   }
 
   /**
