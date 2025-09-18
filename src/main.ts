@@ -9,10 +9,10 @@ async function bootstrap() {
 
   // Swagger Documentation
   const config = new DocumentBuilder()
-    .setTitle('Rino API')
-    .setDescription('La documentación de la API de Rino')
+    .setTitle('Cyber Imperium API')
+    .setDescription('La documentación de la API de Cyber Imperium')
     .setVersion('1.0')
-    .addTag('Rino')
+    .addTag('Cyber Imperium')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

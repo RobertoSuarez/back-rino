@@ -43,7 +43,7 @@ import { ScheduleModule } from '@nestjs/schedule';
             },
           },
           defaults: {
-            from: '"Rino" <rino@gmail.com>',
+            from: '"Cyber Imperium" <cyberimperiumapp@gmail.com>',
           },
         };
       },
