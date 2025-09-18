@@ -38,7 +38,6 @@ import * as path from 'path';
           }
         }
         
-        console.log('SSL Option: ', sslOption);
         
         const config: TypeOrmModuleOptions = {
           type: 'postgres',
@@ -61,7 +60,6 @@ import * as path from 'path';
         if (logConfig.password) {
           logConfig.password = '********';
         }
-        console.log('Database Config: ', logConfig);
         
         return config;
       },

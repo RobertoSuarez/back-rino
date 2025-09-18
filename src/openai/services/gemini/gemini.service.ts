@@ -1,25 +1,70 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   GoogleGenerativeAI,
   HarmCategory,
   HarmBlockThreshold,
+  GenerativeModel,
 } from '@google/generative-ai';
 import { FeedbackExerciseDto } from '../../../course/dtos/exercises.dtos';
+import { ConfigkeyService } from 'src/parameters/services/configkey/configkey.service';
 
 @Injectable()
 export class GeminiService {
-  private generativeAI: GoogleGenerativeAI;
-  private model: any;
+  private readonly logger = new Logger(GeminiService.name);
+  private generativeAI: GoogleGenerativeAI | null = null;
+  private model: GenerativeModel | null = null;
+  private modelInitialization: Promise<void> | null = null;
+  private readonly defaultModel = 'gemini-2.0-flash-lite-001';
 
-  constructor(private configService: ConfigService) {
-    const apiKey = this.configService.get<string>('GOOGLE_API_KEY');
-    if (!apiKey) {
-      throw new Error('GOOGLE_API_KEY no está configurada en las variables de entorno');
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly configkeyService: ConfigkeyService,
+  ) {}
+
+  private async resolveApiKey(): Promise<string | null> {
+    const keyFromDb = await this.configkeyService.getKeyGemini();
+    if (keyFromDb) {
+      return keyFromDb;
     }
-    
-    this.generativeAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.generativeAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite-001' });
+
+    const keyFromEnv = this.configService.get<string>('GOOGLE_API_KEY');
+    if (keyFromEnv) {
+      return keyFromEnv;
+    }
+
+    this.logger.error('Gemini API key not configured');
+    return null;
+  }
+
+  private async ensureModel(): Promise<GenerativeModel> {
+    if (this.model) {
+      return this.model;
+    }
+
+    if (!this.modelInitialization) {
+      this.modelInitialization = (async () => {
+        const apiKey = await this.resolveApiKey();
+        if (!apiKey) {
+          throw new Error(
+            'Gemini API key not configured. Please configure it before using the service.',
+          );
+        }
+
+        this.generativeAI = new GoogleGenerativeAI(apiKey);
+        this.model = this.generativeAI.getGenerativeModel({
+          model: this.defaultModel,
+        });
+      })();
+    }
+
+    await this.modelInitialization;
+
+    if (!this.model) {
+      throw new Error('Gemini model could not be initialised');
+    }
+
+    return this.model;
   }
 
   /**
@@ -278,6 +323,7 @@ IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional
    */
   private async getFeedbackExerciseGeneric(prompt: string): Promise<FeedbackExerciseDto> {
     try {
+      const model = await this.ensureModel();
       const generationConfig = {
         temperature: 0.3, // Más determinística para respuestas consistentes
         topK: 20,
@@ -304,7 +350,7 @@ IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional
         },
       ];
 
-      const result = await this.model.generateContent({
+      const result = await model.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig,
         safetySettings,
@@ -348,21 +394,25 @@ IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional
         };
       }
     } catch (error) {
-      console.error('Error al generar feedback con Gemini:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error('Error al generar feedback con Gemini:', error);
       return {
         qualification: 0,
-        feedback: 'Error al generar retroalimentación. Por favor, inténtalo de nuevo.',
+        feedback:
+          'Error al generar retroalimentación. Por favor, inténtalo de nuevo.',
       };
     }
   }
 
   /**
-   * Método genérico para generar contenido con Gemini
+   * Método público para generar contenido con Gemini
    * @param prompt Prompt para la generación
    * @returns Contenido generado
    */
-  private async generateContent(prompt: string): Promise<string> {
+  async generateContent(prompt: string): Promise<string> {
     try {
+      const model = await this.ensureModel();
       const generationConfig = {
         temperature: 0.7,
         topK: 40,
@@ -389,7 +439,7 @@ IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional
         },
       ];
 
-      const result = await this.model.generateContent({
+      const result = await model.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig,
         safetySettings,
@@ -398,8 +448,10 @@ IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional
       const response = result.response;
       return response.text();
     } catch (error) {
-      console.error('Error al generar contenido con Gemini:', error);
-      throw new Error(`Error al generar contenido: ${error.message}`);
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error('Error al generar contenido con Gemini:', error);
+      throw new Error(`Error al generar contenido: ${errorMessage}`);
     }
   }
 }

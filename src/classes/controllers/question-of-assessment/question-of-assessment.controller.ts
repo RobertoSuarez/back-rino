@@ -37,7 +37,6 @@ export class QuestionOfAssessmentController {
 
   @Post()
   async createQuestion(@Body() payload: CreateQuestionDto) {
-    console.log(payload);
     return await this._questionOfAssessmentService.CreateQuestion(payload);
   }
 

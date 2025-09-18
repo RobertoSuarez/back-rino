@@ -17,25 +17,53 @@ export class StatisticsService {
   ) {}
 
   async getTopUsers() {
+    // Obtener los usuarios con sus puntuaciones de actividades
     const result = await this._activityProgressUserRepository
       .createQueryBuilder('activityProgressUser')
       .select(
-        'user.id as id, user.firstName as firstName, user.lastName as lastName, user.urlAvatar as urlAvatar  , ROUND(SUM(score)::numeric, 2)::int AS score',
+        'user.id as id, user.firstName as firstName, user.lastName as lastName, ' +
+        'user.urlAvatar as urlAvatar, user.yachay as yachay, ' +
+        'ROUND(SUM(score)::numeric, 2)::int AS ihi',
       )
       .leftJoin('activityProgressUser.user', 'user')
       .groupBy('user.id')
-      .orderBy('score', 'DESC')
-      .limit(20)
+      .orderBy('user.yachay', 'DESC') // Ordenar por yachay en lugar de ihi
+      .limit(50)
       .getRawMany();
-    return result.map((r) => ({
-      id: r.id,
-      firstName: r.firstname,
-      lastName: r.lastname,
-      url: r.urlavatar
-        ? r.urlavatar
-        : `https://ui-avatars.com/api/?name=${r.firstname?.split(' ')[0]}+${r.lastname?.split(' ')[0]}&background=1B802F&color=fff`,
-      score: r.score,
-    }));
+    
+    // Para cada usuario, contar sus suscripciones
+    const usersWithSubscriptions = await Promise.all(
+      result.map(async (r) => {
+        // Contar suscripciones para este usuario
+        const subscriptionsCount = await this._userRepository
+          .createQueryBuilder('user')
+          .leftJoinAndSelect('user.subscriptions', 'subscription')
+          .where('user.id = :userId', { userId: r.id })
+          .getOne()
+          .then(user => user?.subscriptions?.length || 0);
+        
+        return {
+          id: r.id,
+          firstName: r.firstname,
+          lastName: r.lastname,
+          url: r.urlavatar
+            ? r.urlavatar
+            : `https://ui-avatars.com/api/?name=${r.firstname?.split(' ')[0]}+${r.lastname?.split(' ')[0]}&background=1B802F&color=fff`,
+          ihi: r.ihi || 0,
+          yachay: r.yachay || 0,
+          subscriptionsCount: subscriptionsCount,
+          rank: 0 // Se llenará después
+        };
+      })
+    );
+    
+    // Asignar ranking
+    return usersWithSubscriptions
+      .sort((a, b) => b.yachay - a.yachay) // Ordenar por yachay en lugar de ihi
+      .map((user, index) => ({
+        ...user,
+        rank: index + 1
+      }));
   }
 
   async getCursosClasesEvaluaciones(userId: number) {

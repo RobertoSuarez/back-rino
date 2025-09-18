@@ -295,7 +295,6 @@ export class GenerateExercisesService {
   };
 
   exerciseMultipleSelection = async (args: string) => {
-    console.log(args);
     const data = JSON.parse(args);
     const result = {
       statement: data.statement,
@@ -320,7 +319,6 @@ export class GenerateExercisesService {
   };
 
   questionMultipleSelection = async (args: string) => {
-    console.log(args);
     const data = JSON.parse(args);
     const result = {
       statement: data.statement,
@@ -345,7 +343,6 @@ export class GenerateExercisesService {
   };
 
   exerciseOrderFragmentCode = async (args: string) => {
-    console.log(args);
     const data = JSON.parse(args);
     const result = {
       statement: data.statement,
@@ -370,7 +367,6 @@ export class GenerateExercisesService {
   };
 
   questionOrderFragmentCode = async (args: string) => {
-    console.log(args);
     const data = JSON.parse(args);
     const result = {
       statement: data.statement,
@@ -395,7 +391,6 @@ export class GenerateExercisesService {
   };
 
   exerciseOrderLineCode = async (args: string) => {
-    console.log(args);
     const data = JSON.parse(args);
     const result = {
       statement: data.statement,
@@ -420,7 +415,6 @@ export class GenerateExercisesService {
   };
 
   questionOrderLineCode = async (args: string) => {
-    console.log(args);
     const data = JSON.parse(args);
     const result = {
       statement: data.statement,
@@ -445,7 +439,6 @@ export class GenerateExercisesService {
   };
 
   exerciseWriteCode = async (args: string) => {
-    console.log(args);
     const data = JSON.parse(args);
     const result = {
       statement: data.statement,
@@ -470,7 +463,6 @@ export class GenerateExercisesService {
   };
 
   questionWriteCode = async (args: string) => {
-    console.log(args);
     const data = JSON.parse(args);
     const result = {
       statement: data.statement,
@@ -495,7 +487,6 @@ export class GenerateExercisesService {
   };
 
   exerciseFindErrorCode = async (args: string) => {
-    console.log(args);
     const data = JSON.parse(args);
     const result = {
       statement: data.statement,
@@ -520,7 +511,6 @@ export class GenerateExercisesService {
   };
 
   questionFindErrorCode = async (args: string) => {
-    console.log(args);
     const data = JSON.parse(args);
     const result = {
       statement: data.statement,

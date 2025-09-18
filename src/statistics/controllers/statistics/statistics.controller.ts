@@ -1,4 +1,4 @@
-import { Controller, Get, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Request, UseGuards } from '@nestjs/common';
 import { StatisticsService } from '../../../statistics/service/statistics/statistics.service';
 import { AuthGuard } from 'src/user/guards/auth/auth.guard';
 
@@ -8,6 +8,11 @@ export class StatisticsController {
 
   @Get('top-users')
   async getTopUsers() {
+    return await this._statisticsService.getTopUsers();
+  }
+
+  @Get('leaderboard')
+  async getLeaderboard(@Query('limit') limit: number = 50) {
     return await this._statisticsService.getTopUsers();
   }
 

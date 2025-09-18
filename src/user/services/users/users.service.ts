@@ -165,7 +165,6 @@ export class UsersService {
           }
         }
       } catch (error) {
-        console.log('Error parsing date:', error);
         user.birthday = null;
       }
     } else {
@@ -186,10 +185,8 @@ export class UsersService {
     //TODO: Encriptar la contraseña.
 
     try {
-      console.log(user);
       await this._userRepo.save(user);
     } catch (error) {
-      console.log(error);
       if (error.code === '23505') {
         throw new Error('El usuario ya existe');
       } else {
@@ -228,11 +225,9 @@ export class UsersService {
             user.birthday = altParsedDate.toJSDate();
           } else {
             // Si no se puede parsear, mantener la fecha actual
-            console.log('Invalid date format:', payload.birthday);
           }
         }
       } catch (error) {
-        console.log('Error parsing date:', error);
       }
     }
     
@@ -302,7 +297,6 @@ export class UsersService {
   }
 
   async getUserIndicators(userId: number) {
-    console.log('userId: ', userId);
     const user = await this._userRepo.findOneBy({ id: userId });
     return {
       yachay: user.yachay,

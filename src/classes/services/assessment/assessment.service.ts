@@ -95,7 +95,6 @@ export class AssessmentService {
     status: 'in_progress' | 'finished' | 'all',
     userId: number,
   ) {
-    console.log(userId);
     const now = new Date();
     const assessmentsQuery = this._assessmentRepository
       .createQueryBuilder('assessment')
@@ -237,7 +236,6 @@ export class AssessmentService {
   }
 
   async getAssessmentsAttempted(assessmentId: number, userId: number) {
-    console.log(assessmentId, userId);
     // información de la evaluación
     // los intentos mas calificación
     const assessment = await this._assessmentRepository.findOneBy({
@@ -453,7 +451,6 @@ export class AssessmentService {
     response: ResponseUserQuestionDto,
     questionOfAssessment: QuestionOfAssessment,
   ) {
-    console.log(response, questionOfAssessment);
     let score = 0;
     switch (questionOfAssessment.typeQuestion) {
       case 'selection_single':
@@ -550,7 +547,6 @@ export class AssessmentService {
         },
       });
 
-    console.log(assessmentsOfUser, countAssessmentsOfUser);
 
     if (countAssessmentsOfUser === assessment.amountOfAttempt) {
       throw new Error('Ya ha superado la cantidad de intentos');
@@ -627,7 +623,6 @@ export class AssessmentService {
 
   @Cron('05 * * * * *')
   async finishedAssessments() {
-    console.log('Calificando evaluaciones');
     // Recuperamos todas la evaluaciones finalizadas, los últimos 10 minutos.
     const assessments = await this._assessmentRepository
       .createQueryBuilder('assessment')

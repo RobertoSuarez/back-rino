@@ -20,6 +20,9 @@ export class Chat extends BaseTable {
   @Column()
   title: string;
 
+  @Column({ nullable: true, default: 'general' })
+  type: string;
+
   // Un Chat tiene muchos mensajes.
   @OneToMany(() => ChatMessage, (m) => m.chat)
   messages: ChatMessage[];

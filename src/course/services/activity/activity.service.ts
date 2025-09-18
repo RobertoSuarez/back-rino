@@ -113,7 +113,6 @@ export class ActivityService {
       throw new Error('not found activity');
     }
 
-    console.log(activity);
 
     const data = {
       id: activity.id,

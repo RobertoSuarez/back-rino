@@ -8,7 +8,6 @@ export class QuestionsController {
 
   @Post('generate')
   async generateQuestion(@Body() payload: GenerateQuestionDto) {
-    console.log(payload);
     return await this.generateExercisesService.generateQuestion(payload);
   }
 }

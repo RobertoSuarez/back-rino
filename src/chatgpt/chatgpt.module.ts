@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ChatsController } from './controllers/chats/chats.controller';
 import { MessagesController } from './controllers/messages/messages.controller';
+import { StudentChatController } from './controllers/student-chat/student-chat.controller';
 import { ChatsService } from './services/chats/chats.service';
 import { MessagesService } from './services/messages/messages.service';
+import { StudentChatService } from './services/student-chat/student-chat.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -24,7 +26,7 @@ import { ChatOptions } from '../database/entities/chatoptions.entity';
     TypeOrmModule.forFeature([Chat, ChatMessage, User, ChatOptions]),
     OpenaiModule,
   ],
-  controllers: [ChatsController, MessagesController],
-  providers: [ChatsService, MessagesService],
+  controllers: [ChatsController, MessagesController, StudentChatController],
+  providers: [ChatsService, MessagesService, StudentChatService],
 })
 export class ChatgptModule {}
