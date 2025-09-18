@@ -74,7 +74,6 @@ export class ExercisesService {
   }
 
   async getExercisesPractice(chapterId: number) {
-    console.log(chapterId);
     const exercises = await this.exerciseRepo
       .createQueryBuilder('exercise')
       .leftJoinAndSelect('exercise.activity', 'activity')

@@ -39,7 +39,6 @@ export class AuthController {
   @Get('profile')
   @ApiOperation({ summary: 'Obtiene el perfil del usuario, en base al token' })
   getProfile(@Request() req) {
-    console.log(req.user);
     return req.user;
   }
 

@@ -71,7 +71,6 @@ export class ClassesService {
         ids: matriculas.map((m) => m.class.id),
       })
       .getMany();
-    // console.log(matriculas);
     // const classes = await this._matriculaRepository
     //   .createQueryBuilder('matricula')
     //   .leftJoinAndSelect('matricula.class', 'class')
@@ -140,8 +139,6 @@ export class ClassesService {
   }
 
   async updateClass(classId: number, updateClass: UpdateClassDto) {
-    console.log(classId);
-    console.log(updateClass);
     const updatedClass = await this._classesRepository.findOneBy({
       id: classId,
     });

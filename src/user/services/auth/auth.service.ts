@@ -130,8 +130,6 @@ export class AuthService {
         </div>
         `,
       })
-      .then(() => console.log('Enviado'))
-      .catch((error) => console.log(error));
   }
 
   async setPassword(payload: SetterPasswordDto): Promise<string> {

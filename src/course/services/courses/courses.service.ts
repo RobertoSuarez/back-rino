@@ -280,7 +280,6 @@ export class CoursesService {
         .andWhere('course.isPublic = :isPublic', { isPublic: true });
     }
 
-    console.log(query.getSql());
 
     // query.andWhere('course.isPublic = :isPublic', { isPublic: true });
 

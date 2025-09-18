@@ -35,7 +35,6 @@ export class ActivityController {
 
   @Get(':id/init')
   async initActivity(@Param('id', ParseIntPipe) id: number) {
-    console.log(id);
     const result = await this.activityService.getActivityWithExercise(id);
     return result;
   }

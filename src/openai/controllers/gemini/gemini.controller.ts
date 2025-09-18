@@ -25,7 +25,6 @@ export class GeminiController {
 
   @Post('generate-course-description')
   async generateCourseDescription(@Body() payload: any) {
-    console.log('Payload', payload);
     const description = await this.geminiService.generateCourseDescription(
       payload.title,
     );
@@ -34,7 +33,6 @@ export class GeminiController {
 
   @Post('generate-chapter-description')
   async generateChapterDescription(@Body() payload: any) {
-    console.log('Payload', payload);
     const description = await this.geminiService.generateChapterDescription(
       payload.chapterTitle,
       payload.courseTitle,
@@ -45,7 +43,6 @@ export class GeminiController {
 
   @Post('generate-tema-content')
   async generateTemaContent(@Body() payload: any) {
-    console.log('Payload', payload);
     const content = await this.geminiService.generateTemaContent(
       payload.temaTitle,
       payload.chapterTitle,

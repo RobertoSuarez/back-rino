@@ -38,4 +38,29 @@ export class ConfigkeyController {
 
     await this._configkeyService.setKeyOpenAI(payload.key);
   }
+
+  @Get('gemini')
+  async getKeyGemini(@Request() req) {
+    const user = req.user;
+
+    if (user.typeUser != 'admin') {
+      throw new Error('Acceso no autorizado');
+    }
+
+    const key = await this._configkeyService.getKeyGemini();
+    return {
+      key,
+    };
+  }
+
+  @Patch('gemini')
+  async setKeyGemini(@Request() req, @Body() payload: { key: string }) {
+    const user = req.user;
+
+    if (user.typeUser != 'admin') {
+      throw new Error('Acceso no autorizado');
+    }
+
+    await this._configkeyService.setKeyGemini(payload.key);
+  }
 }
