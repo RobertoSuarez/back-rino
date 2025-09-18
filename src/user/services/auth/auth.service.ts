@@ -104,7 +104,7 @@ export class AuthService {
     this.mailerService
       .sendMail({
         to: payload.email,
-        from: 'rino@gmail.com',
+        from: 'cyberimperiumapp@gmail.com',
         subject: 'Recuperación de contraseña - CyberImperium',
         text: `Hola, has solicitado restablecer tu contraseña. Por favor, haz clic en el siguiente enlace para crear una nueva contraseña: ${url}`,
         html: `

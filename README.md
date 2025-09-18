@@ -73,7 +73,7 @@ $ npm run test:cov
 
 ¿Tienes preguntas o sugerencias? ¡Me encantaría escucharte!
 
-- Email: rino@gmail.com
+- Email: rino.arias2018@uteq.edu.ec
 - Web: [rino.com](https://rino.com)
 
 ## 📄 Licencia
