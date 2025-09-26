@@ -157,7 +157,7 @@ export class ActivityService {
     );
     // const average = score / payload.length;
 
-    const precision = (score / (payload.length * 10)) * 100;
+    const precision = Math.round((score / (payload.length * 10)) * 100);
 
     const activity = await this.activityRepo.findOne({
       where: { id: activityID },
