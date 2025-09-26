@@ -43,6 +43,12 @@ export class CoursesController {
     return await this.coursesService.findAll();
   }
 
+  @ApiOperation({ summary: 'Obtiene todos los cursos para administradores (incluyendo privados)' })
+  @Get('admin')
+  async getCoursesForAdmin() {
+    return await this.coursesService.findAllForAdmin();
+  }
+
   @ApiOperation({
     summary: 'Recupera todos los cursos pero con el progreso del usuario',
   })

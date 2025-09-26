@@ -66,11 +66,9 @@ export class TemaService {
       // Ordenando las actividades por nombre
       temaActivities.sort((a, b) => a.title.localeCompare(b.title));
 
-      // Contando las actividades completadas y no completadas
+      // Contando las actividades completadas y total de actividades
       t.completedActivities = temaActivities.filter((a) => a.completed).length;
-      t.activitiesToComplete = temaActivities.filter(
-        (a) => !a.completed,
-      ).length;
+      t.activitiesToComplete = temaActivities.length;
 
       return { ...t, activities: temaActivities };
     });

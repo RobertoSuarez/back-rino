@@ -54,6 +54,35 @@ export class CoursesService {
     return result;
   }
 
+  async findAllForAdmin() {
+    const courses = await this.courseRepo
+      .createQueryBuilder('course')
+      .leftJoinAndSelect('course.createdBy', 'createdBy')
+      .leftJoinAndSelect('course.chapters', 'chapters')
+      .where('course.deletedAt IS NULL')
+      .orderBy('course.createdAt', 'ASC')
+      .getMany();
+
+    const result = courses.map((course) => ({
+      id: course.id,
+      title: course.title,
+      createdBy: course.createdBy.firstName + ' ' + course.createdBy.lastName,
+      chapters: `${course.chapters.length} capítulos`,
+      code: course.code,
+      urlLogo: course.urlLogo,
+      index: course.index,
+      isPublic: course.isPublic,
+      createAt: DateTime.fromISO(course.createdAt.toISOString())
+        .setZone('America/Guayaquil')
+        .toFormat(formatDateFrontend),
+      updatedAt: DateTime.fromISO(course.updatedAt.toISOString())
+        .setZone('America/Guayaquil')
+        .toFormat(formatDateFrontend),
+    }));
+
+    return result;
+  }
+
   async findCourseById(courseId: number) {
     const course = await this.courseRepo.findOne({ where: { id: courseId }, relations: { createdBy: true } });
     if (!course) {
