@@ -77,9 +77,9 @@ export class CreateUserDto {
   @IsNotEmpty({ message: 'La fecha de nacimiento es requerida' })
   readonly birthday: string;
 
-  @IsEnum(['student', 'teacher', 'admin'])
+  @IsEnum(['student', 'teacher', 'admin', 'parent'])
   @IsNotEmpty()
-  @ApiProperty({ enum: ['student', 'teacher', 'admin'] })
+  @ApiProperty({ enum: ['student', 'teacher', 'admin', 'parent'] })
   readonly typeUser: string;
 
   // @IsString()
