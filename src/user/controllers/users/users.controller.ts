@@ -50,6 +50,18 @@ export class UsersController {
     return indicators;
   }
 
+  @Patch('indicators')
+  @UseGuards(AuthGuard)
+  @ApiOperation({ summary: 'Actualiza los indicadores (yachay, tumis, mullu) del usuario actual' })
+  async updateUserIndicators(
+    @Request() req,
+    @Body() payload: UserIndicatorsDto,
+  ) {
+    console.log('info para actualizar: ', req.user.id, payload);
+    const indicators = await this._usersService.updateUserIndicators(req.user.id, payload);
+    return indicators;
+  }
+
   @Get('search')
   @ApiOperation({ summary: 'Busca usuarios por nombre, apellido o email' })
   @ApiQuery({ name: 'query', required: true, description: 'Término de búsqueda' })

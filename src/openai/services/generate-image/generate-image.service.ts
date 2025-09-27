@@ -63,43 +63,22 @@ export class GenerateImageService {
   }
 
   async uploadImage(file: Express.Multer.File) {
-    const tempFilePath = path.join(
-      os.tmpdir(),
-      `${Date.now()}-${file.originalname}`,
-    );
-    fs.writeFileSync(tempFilePath, file.buffer);
+    // Crear directorio si no existe
+    const uploadDir = path.join(process.cwd(), 'uploads', 'images');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
 
-    // Comentamos todo el código relacionado con Cloudinary
-    /*
-    const config = {
-      cloud_name: this._configService.get('CLOUDINARY_CLOUD_NAME'),
-      api_key: this._configService.get('CLOUDINARY_API_KEY'),
-      api_secret: this._configService.get('CLOUDINARY_API_SECRET'),
-    };
-    cloudinary.config(config);
+    // Generar nombre único para el archivo
+    const fileExtension = path.extname(file.originalname);
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}${fileExtension}`;
+    const filePath = path.join(uploadDir, fileName);
 
-    const publicId = 'image' + uuid();
-    const timestamp = Math.floor(Date.now() / 1000);
-    const apiSecret = this._configService.get('CLOUDINARY_API_SECRET');
+    // Guardar el archivo
+    fs.writeFileSync(filePath, file.buffer);
 
-    // Genera la cadena de la firma
-    const signature = cloudinary.utils.api_sign_request(
-      { public_id: publicId, timestamp: timestamp },
-      apiSecret,
-    );
-
-    // Subimos la imagen a cloudinary.
-    const uploadResult = await cloudinary.uploader.upload(tempFilePath, {
-      public_id: publicId,
-      timestamp: timestamp,
-      signature: signature,
-      api_key: this._configService.get('CLOUDINARY_API_KEY'),
-    });
-    return uploadResult.url;
-    */
-    
-    // En lugar de subir a Cloudinary, simplemente devolvemos una URL local temporal
-    // Esto es solo un ejemplo, en producción necesitarías implementar un servicio de almacenamiento alternativo
-    return `file://${tempFilePath}`;
+    // Devolver URL accesible desde el frontend
+    const baseUrl = this._configService.get('BASE_URL') || 'http://localhost:3000';
+    return `${baseUrl}/uploads/images/${fileName}`;
   }
 }

@@ -74,7 +74,7 @@ export class GeminiService {
    */
   async generateCourseDescription(title: string): Promise<string> {
     const prompt = `Genera una descripción detallada y atractiva para un curso educativo titulado "${title}". 
-    La descripción debe tener entre 150 y 200 palabras, destacar los beneficios del curso y que tiene ac, 
+    La descripción debe ser un párrafo único, destacar los beneficios del curso y que tiene ac, 
     a quién va dirigido (estudiantes de Educación General Básica Superior que generalmente tienen entre 12 a 14 años) 
     y qué aprenderán los estudiantes. Usa un tono profesional pero amigable.
     No quiero que digas explícitamente que es para estudiantes de Educación General Básica Superior ni la edad.

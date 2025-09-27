@@ -14,9 +14,15 @@ import { ClassesModule } from './classes/classes.module';
 import { CommunityModule } from './community/community.module';
 import { StatisticsModule } from './statistics/statistics.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import * as path from 'path';
 
 @Module({
   imports: [
+    ServeStaticModule.forRoot({
+      rootPath: path.join(__dirname, '..', 'uploads'),
+      serveRoot: '/uploads',
+    }),
     UserModule,
     CourseModule,
     ChatgptModule,
