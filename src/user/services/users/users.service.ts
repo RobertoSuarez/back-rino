@@ -5,6 +5,7 @@ import {
   LivesWithGemsDto,
   UserUpdateDto,
   PaginatedUsersResponseDto,
+  UserIndicatorsDto,
 } from '../../dtos/users.dtos';
 import { User } from '../../../database/entities/user.entity';
 import { Repository, Like, ILike } from 'typeorm';
@@ -318,6 +319,29 @@ export class UsersService {
     return {
       lives: user.tumis,
       gems: user.yachay,
+    };
+  }
+
+  async updateUserIndicators(
+    userId: number,
+    payload: UserIndicatorsDto,
+  ) {
+    const user = await this._userRepo.findOneBy({ id: userId });
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    user.yachay = payload.yachay;
+    user.tumis = payload.tumis;
+    user.mullu = payload.mullu;
+
+    await this._userRepo.save(user);
+    console.log('usuario actualizado: ', user);
+
+    return {
+      yachay: user.yachay,
+      tumis: user.tumis,
+      mullu: user.mullu,
     };
   }
 
