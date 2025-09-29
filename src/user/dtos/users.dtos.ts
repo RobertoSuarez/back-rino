@@ -51,6 +51,14 @@ export class UserDto {
   @Expose()
   @ApiProperty()
   readonly requiredUpdate: boolean;
+
+  @Expose()
+  @ApiProperty()
+  readonly isVerified: boolean;
+
+  @Expose()
+  @ApiProperty()
+  readonly approved: boolean;
 }
 
 export class CreateUserDto {
