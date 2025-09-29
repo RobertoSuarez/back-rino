@@ -37,6 +37,11 @@ export class QuestionOfAssessment extends BaseTable {
       'order_line_code',
       'write_code',
       'find_error_code',
+      'vertical_ordering',
+      'horizontal_ordering',
+      'phishing_selection_multiple',
+      'match_pairs',
+      'true_false',
     ],
     default: 'selection_single',
   })
@@ -46,7 +51,12 @@ export class QuestionOfAssessment extends BaseTable {
     | 'order_fragment_code' // VARIAS LINEAS
     | 'order_line_code' // DE SOLO UNA LINEA
     | 'write_code'
-    | 'find_error_code';
+    | 'find_error_code'
+    | 'vertical_ordering'
+    | 'horizontal_ordering'
+    | 'phishing_selection_multiple'
+    | 'match_pairs'
+    | 'true_false';
 
   @Column({ type: 'json', default: [], nullable: true })
   optionSelectOptions: string[];
@@ -59,6 +69,18 @@ export class QuestionOfAssessment extends BaseTable {
 
   @Column({ type: 'json', default: [], nullable: true })
   optionsFindErrorCode: string[];
+
+  @Column({ type: 'json', default: [], nullable: true })
+  verticalOrdering: string[];
+
+  @Column({ type: 'json', default: [], nullable: true })
+  horizontalOrdering: string[];
+
+  @Column({ type: 'json', default: [], nullable: true })
+  phishingSelectionMultiple: string[];
+
+  @Column({ type: 'json', default: [], nullable: true })
+  matchPairs: string[];
 
   // Los siguientes campos son las respuestas de las diferentes preguntas.
   @Column({ default: null, nullable: true })

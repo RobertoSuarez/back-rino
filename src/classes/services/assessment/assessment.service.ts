@@ -530,6 +530,7 @@ export class AssessmentService {
 
     // Desordenas de las preguntas y las limitas
     assessment.questions = assessment.questions
+      .filter(q => ['selection_single', 'selection_multiple', 'order_fragment_code', 'order_line_code', 'write_code', 'find_error_code'].includes(q.typeQuestion))
       .sort(() => Math.random() - 0.5)
       .slice(0, assessment.numberOfQuestions);
 
@@ -568,7 +569,7 @@ export class AssessmentService {
           question.statement = q.statement;
           question.code = q.code;
           question.hind = q.hind;
-          question.typeQuestion = q.typeQuestion;
+          question.typeQuestion = q.typeQuestion as 'selection_single' | 'selection_multiple' | 'order_fragment_code' | 'order_line_code' | 'write_code' | 'find_error_code';
           question.optionSelectOptions = q.optionSelectOptions;
           question.optionOrderFragmentCode = q.optionOrderFragmentCode;
           question.optionOrderLineCode = q.optionOrderLineCode;
