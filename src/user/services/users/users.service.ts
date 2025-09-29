@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MailerService } from '@nestjs-modules/mailer';
 import {
@@ -11,9 +11,11 @@ import {
 import { User } from '../../../database/entities/user.entity';
 import { Repository, Like, ILike } from 'typeorm';
 import { DateTime } from 'luxon';
+import { v4 as uuid } from 'uuid';
 import { formatDateFrontend } from '../../../common/constants';
 import { StatisticsService } from '../../../statistics/service/statistics/statistics.service';
 import { Followers } from '../../../database/entities/followers.entity';
+import { EmailVerification } from '../../../database/entities/emailVerification.entity';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -25,6 +27,8 @@ export class UsersService {
     private _followersRepository: Repository<Followers>,
     private _mailerService: MailerService,
     private _configService: ConfigService,
+    @InjectRepository(EmailVerification)
+    private _emailVerificationRepo: Repository<EmailVerification>,
   ) {}
 
   private async sendTeacherApprovalNotification(newTeacher: User) {
@@ -78,6 +82,93 @@ export class UsersService {
     } catch (error) {
       console.error('Error al enviar notificación de nuevo profesor:', error);
     }
+  }
+
+  private async sendWelcomeEmailWithVerification(newUser: User) {
+    // Generar token único
+    const verificationToken = uuid();
+
+    // Crear registro de verificación
+    const emailVerification = new EmailVerification();
+    emailVerification.email = newUser.email;
+    emailVerification.token = verificationToken;
+    emailVerification.used = false;
+    emailVerification.user = newUser;
+
+    await this._emailVerificationRepo.save(emailVerification);
+
+    const frontendUrl = this._configService.get('FRONTEND_URL');
+    const verificationUrl = `${frontendUrl}/auth/verify-email?token=${verificationToken}`;
+
+    const subject = 'Bienvenido a Cyber Imperium - Verifica tu cuenta';
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h2 style="color: #4a6ee0;">¡Bienvenido a Cyber Imperium!</h2>
+        </div>
+        <div style="padding: 20px; background-color: #f9f9f9; border-radius: 5px;">
+          <p style="margin-bottom: 15px;">Hola ${newUser.firstName} ${newUser.lastName},</p>
+          <p style="margin-bottom: 15px;">¡Bienvenido a Cyber Imperium! Tu cuenta ha sido creada exitosamente.</p>
+          <p style="margin-bottom: 15px;">Para completar tu registro y poder acceder a la plataforma, necesitas verificar tu dirección de email haciendo clic en el botón de abajo:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${verificationUrl}" style="background-color: #4a6ee0; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; font-weight: bold;">Verificar mi cuenta</a>
+          </div>
+          <p style="margin-bottom: 15px;">Si el botón no funciona, puedes copiar y pegar el siguiente enlace en tu navegador:</p>
+          <p style="margin-bottom: 15px; word-break: break-all; background-color: white; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px;">${verificationUrl}</p>
+          <p style="margin-bottom: 15px;">Este enlace expirará en 24 horas por seguridad.</p>
+          <p style="margin-bottom: 5px;">¡Estamos emocionados de tenerte en Cyber Imperium!</p>
+          <p style="margin-bottom: 15px;">El equipo de Cyber Imperium</p>
+        </div>
+      </div>
+    `;
+
+    try {
+      await this._mailerService.sendMail({
+        to: newUser.email,
+        subject: subject,
+        html: htmlContent,
+      });
+      console.log(`Email de verificación enviado a ${newUser.email}`);
+    } catch (error) {
+      console.error('Error al enviar email de verificación:', error);
+    }
+  }
+
+  async verifyEmail(token: string) {
+    // Buscar el token de verificación
+    const emailVerification = await this._emailVerificationRepo.findOne({
+      where: { token, used: false },
+      relations: ['user'],
+    });
+
+    if (!emailVerification) {
+      throw new HttpException('Token de verificación inválido o expirado', HttpStatus.BAD_REQUEST);
+    }
+
+    // Verificar que no haya pasado más de 24 horas
+    const tokenAge = DateTime.fromJSDate(emailVerification.createdAt).diffNow('hours').hours;
+    if (Math.abs(tokenAge) > 24) {
+      throw new HttpException('Token de verificación expirado', HttpStatus.BAD_REQUEST);
+    }
+
+    // Actualizar el usuario como verificado
+    const user = emailVerification.user;
+    user.isVerified = true;
+    await this._userRepo.save(user);
+
+    // Marcar el token como usado
+    emailVerification.used = true;
+    await this._emailVerificationRepo.save(emailVerification);
+
+    return {
+      statusCode: 200,
+      message: 'Email verificado correctamente',
+      data: {
+        userId: user.id,
+        email: user.email,
+        isVerified: user.isVerified,
+      },
+    };
   }
 
   async searchUser(query: string) {
@@ -260,6 +351,9 @@ export class UsersService {
 
     try {
       await this._userRepo.save(user);
+
+      // Enviar email de verificación al nuevo usuario
+      await this.sendWelcomeEmailWithVerification(user);
 
       // Enviar notificación a administradores si es profesor
       if (user.typeUser === 'teacher') {

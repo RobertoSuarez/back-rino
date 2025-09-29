@@ -11,13 +11,14 @@ import { User } from '../database/entities/user.entity';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { ResetPassword } from '../database/entities/resetPassword.entity';
+import { EmailVerification } from '../database/entities/emailVerification.entity';
 import { CourseModule } from '../course/course.module';
 import { StatisticsModule } from '../statistics/statistics.module';
 import { Followers } from '../database/entities/followers.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, ResetPassword, Followers]),
+    TypeOrmModule.forFeature([User, ResetPassword, EmailVerification, Followers]),
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({

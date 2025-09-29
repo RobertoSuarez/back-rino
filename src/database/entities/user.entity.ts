@@ -8,6 +8,7 @@ import {
 
 import { BaseTable } from '../../common/entities/base.entity';
 import { ResetPassword } from './resetPassword.entity';
+import { EmailVerification } from './emailVerification.entity';
 import { Document } from '../../database/entities/document.entity';
 import { Course } from '../../database/entities/course.entity';
 import { Subscription } from '../../database/entities/subscription.entity';
@@ -77,6 +78,9 @@ export class User extends BaseTable {
 
   @OneToMany(() => ResetPassword, (resetPassword) => resetPassword.user)
   resetPasswords: ResetPassword[];
+
+  @OneToMany(() => EmailVerification, (emailVerification) => emailVerification.user)
+  emailVerifications: EmailVerification[];
 
   @OneToMany(() => Document, (doc) => doc.createdBy)
   documents: Document[];
