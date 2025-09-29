@@ -34,6 +34,10 @@ export class CreateQuestionDto {
     'order_line_code',
     'write_code',
     'find_error_code',
+    'vertical_ordering',
+    'horizontal_ordering',
+    'phishing_selection_multiple',
+    'match_pairs'
   ])
   typeQuestion:
     | 'selection_single'
@@ -41,7 +45,11 @@ export class CreateQuestionDto {
     | 'order_fragment_code' // VARIAS LINEAS
     | 'order_line_code' // DE SOLO UNA LINEA
     | 'write_code'
-    | 'find_error_code';
+    | 'find_error_code'
+    | 'vertical_ordering'
+    | 'horizontal_ordering'
+    | 'phishing_selection_multiple'
+    | 'match_pairs';
 
   @IsArray()
   @IsOptional()
@@ -58,6 +66,22 @@ export class CreateQuestionDto {
   @IsArray()
   @IsOptional()
   optionsFindErrorCode: string[];
+
+  @IsArray()
+  @IsOptional()
+  verticalOrdering: string[];
+
+  @IsArray()
+  @IsOptional()
+  horizontalOrdering: string[];
+
+  @IsArray()
+  @IsOptional()
+  phishingSelectionMultiple: string[];
+
+  @IsArray()
+  @IsOptional()
+  matchPairs: string[];
 
   // Los siguientes campos son las respuestas de las diferentes preguntas.
   @IsString()

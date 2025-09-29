@@ -106,6 +106,10 @@ export class QuestionOfAssessmentService {
       newQuestion.optionOrderFragmentCode = question.optionOrderFragmentCode;
       newQuestion.optionOrderLineCode = question.optionOrderLineCode;
       newQuestion.optionsFindErrorCode = question.optionsFindErrorCode;
+      newQuestion.verticalOrdering = question.verticalOrdering;
+      newQuestion.horizontalOrdering = question.horizontalOrdering;
+      newQuestion.phishingSelectionMultiple = question.phishingSelectionMultiple;
+      newQuestion.matchPairs = question.matchPairs;
 
       // Respuesta correcta.
       newQuestion.answerSelectCorrect = question.answerSelectCorrect;

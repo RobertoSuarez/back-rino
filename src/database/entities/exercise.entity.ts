@@ -31,6 +31,10 @@ export class Exercise extends BaseTable {
       'order_line_code',
       'write_code',
       'find_error_code',
+      'vertical_ordering',
+      'horizontal_ordering',
+      'phishing_selection_multiple',
+      'match_pairs'
     ],
     default: 'selection_single',
   })
@@ -40,7 +44,11 @@ export class Exercise extends BaseTable {
     | 'order_fragment_code' // VARIAS LINEAS
     | 'order_line_code' // DE SOLO UNA LINEA
     | 'write_code'
-    | 'find_error_code';
+    | 'find_error_code'
+    | 'vertical_ordering'
+    | 'horizontal_ordering'
+    | 'phishing_selection_multiple'
+    | 'match_pairs';
 
   // Opciones para las diferentes preguntas.
 
