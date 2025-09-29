@@ -102,6 +102,18 @@ export class UsersController {
     return await this._usersService.approvedTeacher(id);
   }
 
+  @Patch(':id/approve')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiOperation({ summary: 'Aprueba un usuario (cambia approved a true)' })
+  async approveUser(@Param('id', ParseIntPipe) id: number) {
+    return {
+      statusCode: 200,
+      message: 'Usuario aprobado correctamente',
+      data: await this._usersService.approveUser(id)
+    };
+  }
+
   @UseGuards(AuthGuard)
   @Get(':id/profile')
   @ApiOperation({ summary: 'Obtiene el perfil del usuario, en base al token' })

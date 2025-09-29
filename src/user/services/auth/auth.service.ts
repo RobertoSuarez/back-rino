@@ -99,12 +99,14 @@ export class AuthService {
     // Guardamos el token
     this.resetPasswordRepo.save(resetPassword);
 
-    const url = `http://localhost:4200/auth/reset-password?token=${resetPassword.token}`;
+    const frontendUrl = this._configService.get('FRONTEND_URL');
+
+    const url = `${frontendUrl}/auth/reset-password?token=${resetPassword.token}`;
 
     this.mailerService
       .sendMail({
         to: payload.email,
-        from: 'cyberimperiumapp@gmail.com',
+        from: 'El equipo de CyberImperium',
         subject: 'Recuperación de contraseña - CyberImperium',
         text: `Hola, has solicitado restablecer tu contraseña. Por favor, haz clic en el siguiente enlace para crear una nueva contraseña: ${url}`,
         html: `

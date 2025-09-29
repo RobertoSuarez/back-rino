@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { MailerService } from '@nestjs-modules/mailer';
 import {
   CreateUserDto,
   LivesWithGemsDto,
@@ -13,6 +14,7 @@ import { DateTime } from 'luxon';
 import { formatDateFrontend } from '../../../common/constants';
 import { StatisticsService } from '../../../statistics/service/statistics/statistics.service';
 import { Followers } from '../../../database/entities/followers.entity';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UsersService {
@@ -21,7 +23,62 @@ export class UsersService {
     private _statisticsService: StatisticsService,
     @InjectRepository(Followers)
     private _followersRepository: Repository<Followers>,
+    private _mailerService: MailerService,
+    private _configService: ConfigService,
   ) {}
+
+  private async sendTeacherApprovalNotification(newTeacher: User) {
+    // Obtener todos los administradores aprobados
+    const admins = await this._userRepo.find({
+      where: {
+        typeUser: 'admin',
+        approved: true,
+      },
+    });
+
+    if (admins.length === 0) {
+      console.warn('No se encontraron administradores aprobados para notificar');
+      return;
+    }
+
+    const adminEmails = admins.map(admin => admin.email);
+    const frontendUrl = this._configService.get('FRONTEND_URL');
+
+    const subject = 'Nuevo profesor registrado - Requiere aprobación';
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h2 style="color: #4a6ee0;">Nuevo Profesor Registrado</h2>
+        </div>
+        <div style="padding: 20px; background-color: #f9f9f9; border-radius: 5px;">
+          <p style="margin-bottom: 15px;">Hola Administrador,</p>
+          <p style="margin-bottom: 15px;">Se ha registrado un nuevo profesor en la plataforma Cyber Imperium que requiere tu aprobación:</p>
+          <div style="background-color: white; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+            <p><strong>Nombre:</strong> ${newTeacher.firstName} ${newTeacher.lastName}</p>
+            <p><strong>Email:</strong> ${newTeacher.email}</p>
+            <p><strong>Fecha de registro:</strong> ${DateTime.fromISO(newTeacher.createdAt.toISOString()).toFormat(formatDateFrontend)}</p>
+          </div>
+          <p style="margin-bottom: 15px;">Por favor, revisa y aprueba la solicitud del profesor desde el panel de administración.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${frontendUrl}/auth/login" style="background-color: #4a6ee0; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; font-weight: bold;">Ir al Panel de Administración</a>
+          </div>
+          <p style="margin-bottom: 5px;">Saludos,</p>
+          <p style="margin-bottom: 15px;">El equipo de Cyber Imperium</p>
+        </div>
+      </div>
+    `;
+
+    try {
+      await this._mailerService.sendMail({
+        to: adminEmails,
+        subject: subject,
+        html: htmlContent,
+      });
+      console.log(`Notificación enviada a ${adminEmails.length} administradores sobre el nuevo profesor: ${newTeacher.email}`);
+    } catch (error) {
+      console.error('Error al enviar notificación de nuevo profesor:', error);
+    }
+  }
 
   async searchUser(query: string) {
     const users = await this._userRepo
@@ -71,6 +128,17 @@ export class UsersService {
     await this._userRepo.save(user);
   }
 
+  async approveUser(id: number) {
+    const user = await this.findById(id);
+    user.approved = true;
+    await this._userRepo.save(user);
+    
+    return {
+      id: user.id,
+      approved: user.approved,
+    };
+  }
+
   async findById(id: number) {
     const user = await this._userRepo.findOneBy({ id });
     if (!user) {
@@ -111,6 +179,8 @@ export class UsersService {
         status: user.status,
         typeUser: user.typeUser,
         requiredUpdate: user.requiredUpdate,
+        isVerified: user.isVerified,
+        approved: user.approved,
       })),
       total,
       page,
@@ -145,6 +215,9 @@ export class UsersService {
     user.firstName = payload.firstName;
     user.lastName = payload.lastName;
     user.email = payload.email;
+    
+    // Generar URL del avatar automáticamente
+    user.urlAvatar = `https://ui-avatars.com/api/?name=${payload.firstName}+${payload.lastName}&background=12BA82&color=fff`;
     
     // Manejo seguro de la fecha de nacimiento
     if (payload.birthday && payload.birthday.trim() !== '') {
@@ -187,6 +260,11 @@ export class UsersService {
 
     try {
       await this._userRepo.save(user);
+
+      // Enviar notificación a administradores si es profesor
+      if (user.typeUser === 'teacher') {
+        await this.sendTeacherApprovalNotification(user);
+      }
     } catch (error) {
       if (error.code === '23505') {
         throw new Error('El usuario ya existe');
@@ -336,7 +414,6 @@ export class UsersService {
     user.mullu = payload.mullu;
 
     await this._userRepo.save(user);
-    console.log('usuario actualizado: ', user);
 
     return {
       yachay: user.yachay,
