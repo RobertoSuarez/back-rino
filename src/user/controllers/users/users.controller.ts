@@ -114,6 +114,12 @@ export class UsersController {
     };
   }
 
+  @Post('verify-email')
+  @ApiOperation({ summary: 'Verifica el email del usuario usando un token' })
+  async verifyEmail(@Body('token') token: string) {
+    return await this._usersService.verifyEmail(token);
+  }
+
   @UseGuards(AuthGuard)
   @Get(':id/profile')
   @ApiOperation({ summary: 'Obtiene el perfil del usuario, en base al token' })
