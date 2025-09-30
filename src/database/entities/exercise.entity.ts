@@ -79,4 +79,44 @@ export class Exercise extends BaseTable {
 
   @Column({ default: '' })
   answerFindError: string;
+
+  @Column({ default: '' })
+  answerWriteCode: string;
+
+  // Opciones y respuestas para vertical_ordering
+  @Column({ type: 'json', default: [] })
+  optionsVerticalOrdering: string[];
+
+  @Column({ type: 'json', default: [] })
+  answerVerticalOrdering: string[];
+
+  // Opciones y respuestas para horizontal_ordering
+  @Column({ type: 'json', default: [] })
+  optionsHorizontalOrdering: string[];
+
+  @Column({ type: 'json', default: [] })
+  answerHorizontalOrdering: string[];
+
+  // Opciones y respuestas para phishing_selection_multiple
+  @Column({ type: 'json', default: [] })
+  optionsPhishingSelection: string[];
+
+  @Column({ type: 'json', default: [] })
+  answerPhishingSelection: string[];
+
+  @Column({ default: '', nullable: true })
+  phishingContext: string; // Contexto adicional como URL, email, o descripción del escenario
+
+  @Column({ default: '', nullable: true })
+  phishingImageUrl: string; // URL de imagen para mostrar (ej: captura de email phishing)
+
+  // Opciones y respuestas para match_pairs
+  @Column({ type: 'json', default: [] })
+  optionsMatchPairsLeft: string[]; // Lista de elementos del lado izquierdo
+
+  @Column({ type: 'json', default: [] })
+  optionsMatchPairsRight: string[]; // Lista de elementos del lado derecho
+
+  @Column({ type: 'json', default: [] })
+  answerMatchPairs: { left: string; right: string }[]; // Pares correctos
 }

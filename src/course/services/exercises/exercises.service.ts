@@ -134,6 +134,19 @@ export class ExercisesService {
       answerOrderFragmentCode: exercise.answerOrderFragmentCode,
       answerOrderLineCode: exercise.answerOrderLineCode,
       answerFindError: exercise.answerFindError,
+      answerWriteCode: exercise.answerWriteCode,
+      // Nuevos campos para los 4 tipos adicionales
+      optionsVerticalOrdering: exercise.optionsVerticalOrdering,
+      answerVerticalOrdering: exercise.answerVerticalOrdering,
+      optionsHorizontalOrdering: exercise.optionsHorizontalOrdering,
+      answerHorizontalOrdering: exercise.answerHorizontalOrdering,
+      optionsPhishingSelection: exercise.optionsPhishingSelection,
+      answerPhishingSelection: exercise.answerPhishingSelection,
+      phishingContext: exercise.phishingContext,
+      phishingImageUrl: exercise.phishingImageUrl,
+      optionsMatchPairsLeft: exercise.optionsMatchPairsLeft,
+      optionsMatchPairsRight: exercise.optionsMatchPairsRight,
+      answerMatchPairs: exercise.answerMatchPairs,
 
       // title: exercise.activity.title,
       // approach:
@@ -248,6 +261,60 @@ export class ExercisesService {
         // Verificar que entre las opciones de error estén las respuestas correctas.
         if (!exercise.optionsFindErrorCode.includes(exercise.answerFindError)) {
           throw new Error('Answer not in options for find_error_code');
+        }
+        break;
+
+      case 'vertical_ordering':
+        if (!exercise.optionsVerticalOrdering || exercise.optionsVerticalOrdering.length < 2) {
+          throw new Error('vertical_ordering requires at least 2 options');
+        }
+        if (!exercise.answerVerticalOrdering || exercise.answerVerticalOrdering.length !== exercise.optionsVerticalOrdering.length) {
+          throw new Error('Answer must contain all options in correct order for vertical_ordering');
+        }
+        break;
+
+      case 'horizontal_ordering':
+        if (!exercise.optionsHorizontalOrdering || exercise.optionsHorizontalOrdering.length < 2) {
+          throw new Error('horizontal_ordering requires at least 2 options');
+        }
+        if (!exercise.answerHorizontalOrdering || exercise.answerHorizontalOrdering.length !== exercise.optionsHorizontalOrdering.length) {
+          throw new Error('Answer must contain all options in correct order for horizontal_ordering');
+        }
+        break;
+
+      case 'phishing_selection_multiple':
+        if (!exercise.optionsPhishingSelection || exercise.optionsPhishingSelection.length < 2) {
+          throw new Error('phishing_selection_multiple requires at least 2 options');
+        }
+        if (!exercise.answerPhishingSelection || exercise.answerPhishingSelection.length < 1) {
+          throw new Error('phishing_selection_multiple requires at least 1 correct answer');
+        }
+        // Verificar que las respuestas correctas estén en las opciones
+        for (const answer of exercise.answerPhishingSelection) {
+          if (!exercise.optionsPhishingSelection.includes(answer)) {
+            throw new Error('Answer not in options for phishing_selection_multiple');
+          }
+        }
+        break;
+
+      case 'match_pairs':
+        if (!exercise.optionsMatchPairsLeft || exercise.optionsMatchPairsLeft.length < 2) {
+          throw new Error('match_pairs requires at least 2 left options');
+        }
+        if (!exercise.optionsMatchPairsRight || exercise.optionsMatchPairsRight.length < 2) {
+          throw new Error('match_pairs requires at least 2 right options');
+        }
+        if (!exercise.answerMatchPairs || exercise.answerMatchPairs.length < 2) {
+          throw new Error('match_pairs requires at least 2 correct pairs');
+        }
+        // Verificar que todos los pares tengan elementos válidos
+        for (const pair of exercise.answerMatchPairs) {
+          if (!exercise.optionsMatchPairsLeft.includes(pair.left)) {
+            throw new Error('Left option in answer not found in optionsMatchPairsLeft');
+          }
+          if (!exercise.optionsMatchPairsRight.includes(pair.right)) {
+            throw new Error('Right option in answer not found in optionsMatchPairsRight');
+          }
         }
         break;
     }

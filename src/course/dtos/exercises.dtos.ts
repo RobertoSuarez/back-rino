@@ -48,6 +48,10 @@ export class CreateExercise {
     'order_line_code',
     'write_code',
     'find_error_code',
+    'vertical_ordering',
+    'horizontal_ordering',
+    'phishing_selection_multiple',
+    'match_pairs',
   ])
   @ApiProperty()
   typeExercise: string;
@@ -99,6 +103,70 @@ export class CreateExercise {
   @IsString()
   @ApiProperty()
   answerFindError: string;
+
+  @Expose()
+  @IsString()
+  @ApiProperty()
+  answerWriteCode: string;
+
+  // Opciones y respuestas para vertical_ordering
+  @Expose()
+  @IsArray()
+  @ApiProperty()
+  optionsVerticalOrdering: string[];
+
+  @Expose()
+  @IsArray()
+  @ApiProperty()
+  answerVerticalOrdering: string[];
+
+  // Opciones y respuestas para horizontal_ordering
+  @Expose()
+  @IsArray()
+  @ApiProperty()
+  optionsHorizontalOrdering: string[];
+
+  @Expose()
+  @IsArray()
+  @ApiProperty()
+  answerHorizontalOrdering: string[];
+
+  // Opciones y respuestas para phishing_selection_multiple
+  @Expose()
+  @IsArray()
+  @ApiProperty()
+  optionsPhishingSelection: string[];
+
+  @Expose()
+  @IsArray()
+  @ApiProperty()
+  answerPhishingSelection: string[];
+
+  @Expose()
+  @IsString()
+  @ApiProperty()
+  phishingContext: string;
+
+  @Expose()
+  @IsString()
+  @ApiProperty()
+  phishingImageUrl: string;
+
+  // Opciones y respuestas para match_pairs
+  @Expose()
+  @IsArray()
+  @ApiProperty()
+  optionsMatchPairsLeft: string[];
+
+  @Expose()
+  @IsArray()
+  @ApiProperty()
+  optionsMatchPairsRight: string[];
+
+  @Expose()
+  @IsArray()
+  @ApiProperty()
+  answerMatchPairs: { left: string; right: string }[];
 }
 
 export class UpdateExercise extends PartialType(CreateExercise) {

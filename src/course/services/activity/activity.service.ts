@@ -126,7 +126,7 @@ export class ActivityService {
           approach:
             e.typeExercise === 'selection_single' ||
             e.typeExercise === 'selection_multiple'
-              ? 'Teórica'
+              ? 'Teórica'
               : 'Practica',
           hind: e.hind,
           optionSelectOptions: e.optionSelectOptions.sort(this.aleatorio),
@@ -135,6 +135,13 @@ export class ActivityService {
           ),
           optionOrderLineCode: e.optionOrderLineCode.sort(this.aleatorio),
           optionFindErrorCode: e.optionsFindErrorCode.sort(this.aleatorio),
+          optionsVerticalOrdering: (e.optionsVerticalOrdering || []).sort(this.aleatorio),
+          optionsHorizontalOrdering: (e.optionsHorizontalOrdering || []).sort(this.aleatorio),
+          optionsPhishingSelection: (e.optionsPhishingSelection || []).sort(this.aleatorio),
+          phishingContext: e.phishingContext || '',
+          phishingImageUrl: e.phishingImageUrl || '',
+          optionsMatchPairsLeft: e.optionsMatchPairsLeft || [],
+          optionsMatchPairsRight: (e.optionsMatchPairsRight || []).sort(this.aleatorio),
         };
       }),
     };
