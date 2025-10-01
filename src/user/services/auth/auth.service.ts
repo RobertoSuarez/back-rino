@@ -85,31 +85,32 @@ export class AuthService {
   }
 
   async recoverPassword(payload: RecoverPasswordDto) {
-    // Recuperamos el usuario
-    const user = await this.userRepo.findOneBy({ email: payload.email });
-    if (!user) {
-      throw new Error('Usuario no registrado');
-    }
-    // Generamos el token
-    const resetPassword = new ResetPassword();
-    resetPassword.email = payload.email;
-    resetPassword.token = uuid();
-    resetPassword.used = false;
+    try {
+      // Recuperamos el usuario
+      const user = await this.userRepo.findOneBy({ email: payload.email });
+      if (!user) {
+        throw new Error('Usuario no registrado');
+      }
+      // Generamos el token
+      const resetPassword = new ResetPassword();
+      resetPassword.email = payload.email;
+      resetPassword.token = uuid();
+      resetPassword.used = false;
 
-    // Guardamos el token
-    this.resetPasswordRepo.save(resetPassword);
+      // Guardamos el token
+      await this.resetPasswordRepo.save(resetPassword);
 
-    const frontendUrl = this._configService.get('FRONTEND_URL');
+      const frontendUrl = this._configService.get('FRONTEND_URL');
 
-    const url = `${frontendUrl}/auth/reset-password?token=${resetPassword.token}`;
+      const url = `${frontendUrl}/auth/reset-password?token=${resetPassword.token}`;
 
-    this.mailerService
-      .sendMail({
-        to: payload.email,
-        from: 'El equipo de CyberImperium',
-        subject: 'Recuperación de contraseña - CyberImperium',
-        text: `Hola, has solicitado restablecer tu contraseña. Por favor, haz clic en el siguiente enlace para crear una nueva contraseña: ${url}`,
-        html: `
+      await this.mailerService
+        .sendMail({
+          to: payload.email,
+          from: 'El equipo de CyberImperium',
+          subject: 'Recuperación de contraseña - CyberImperium',
+          text: `Hola, has solicitado restablecer tu contraseña. Por favor, haz clic en el siguiente enlace para crear una nueva contraseña: ${url}`,
+          html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
           <div style="text-align: center; margin-bottom: 20px;">
             <h2 style="color: #4a6ee0;">Recuperación de Contraseña</h2>
@@ -131,7 +132,14 @@ export class AuthService {
           </div>
         </div>
         `,
-      })
+        });
+      
+      console.log('✅ Email de recuperación enviado exitosamente a:', payload.email);
+    } catch (error) {
+      console.error('❌ Error en recoverPassword:', error);
+      console.error('Stack trace:', error.stack);
+      throw error;
+    }
   }
 
   async setPassword(payload: SetterPasswordDto): Promise<string> {
