@@ -40,13 +40,18 @@ import * as path from 'path';
         return {
           transport: {
             host: 'smtp.gmail.com',
-            port: 587,
-            secure: false,
-            requireTLS: true,
+            port: 465,
+            secure: true,
+            tls: {
+              rejectUnauthorized: false,
+            },
             auth: {
               user,
               pass,
             },
+            connectionTimeout: 60000,
+            greetingTimeout: 30000,
+            socketTimeout: 60000,
           },
           defaults: {
             from: '"Cyber Imperium" <cyberimperiumapp@gmail.com>',
