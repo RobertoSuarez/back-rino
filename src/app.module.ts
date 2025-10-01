@@ -18,6 +18,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import * as path from 'path';
 import { LearningPathModule } from './learning-path/learning-path.module';
 import { TeacherModule } from './teacher/teacher.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { TeacherModule } from './teacher/teacher.module';
     StatisticsModule,
     LearningPathModule,
     TeacherModule,
+    AdminModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [],

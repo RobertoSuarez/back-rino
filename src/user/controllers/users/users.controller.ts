@@ -71,7 +71,7 @@ export class UsersController {
   
   @Get()
   @UseGuards(AuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'teacher')
   @ApiOperation({ summary: 'Recupera todos los usuarios con paginación' })
   @ApiQuery({ name: 'page', required: false, description: 'Número de página' })
   @ApiQuery({ name: 'limit', required: false, description: 'Límite de resultados por página' })
@@ -86,7 +86,7 @@ export class UsersController {
   
   @Get(':id')
   @UseGuards(AuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'teacher')
   @ApiOperation({ summary: 'Obtiene un usuario por su ID' })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this._usersService.findOne(id);
