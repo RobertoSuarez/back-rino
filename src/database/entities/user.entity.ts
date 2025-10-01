@@ -21,6 +21,8 @@ import { Classes } from './classes.entity';
 import { Matricula } from './matricula.entity';
 import { ActivityProgressUser } from './activityProgress.entity';
 import { AssessmentOfUser } from './assessmentOfUser.entity';
+import { LearningPath } from './learningPath.entity';
+import { LearningPathSubscription } from './learningPathSubscription.entity';
 
 @Entity()
 export class User extends BaseTable {
@@ -122,4 +124,10 @@ export class User extends BaseTable {
 
   @OneToMany(() => AssessmentOfUser, (a) => a.student)
   assessmentsOfUsers: AssessmentOfUser[];
+
+  @OneToMany(() => LearningPath, (lp) => lp.createdBy)
+  learningPaths: LearningPath[];
+
+  @OneToMany(() => LearningPathSubscription, (lps) => lps.student)
+  learningPathSubscriptions: LearningPathSubscription[];
 }
