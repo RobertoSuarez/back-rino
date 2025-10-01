@@ -41,12 +41,14 @@ import * as path from 'path';
           transport: {
             host: 'smtp.gmail.com',
             port: 587,
-            secure: false,
-            secureConnection: false,
-            ignoreTLS: true,
+            secure: false, // false para puerto 587 con STARTTLS
+            requireTLS: true, // Requiere STARTTLS
             auth: {
               user,
               pass,
+            },
+            tls: {
+              rejectUnauthorized: false, // Permite certificados autofirmados en desarrollo
             },
           },
           defaults: {
