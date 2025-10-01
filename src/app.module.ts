@@ -41,15 +41,12 @@ import * as path from 'path';
           transport: {
             host: 'smtp.gmail.com',
             port: 587,
-            ignoreTLS: true,
             secure: false,
             secureConnection: false,
+            ignoreTLS: true,
             auth: {
               user,
               pass,
-            },
-            tls: {
-              rejectUnauthorized: false,
             },
           },
           defaults: {
