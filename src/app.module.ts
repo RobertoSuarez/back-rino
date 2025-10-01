@@ -40,12 +40,16 @@ import * as path from 'path';
         return {
           transport: {
             host: 'smtp.gmail.com',
-            port: 465,
-            ingnoreTLS: true,
-            secure: true,
+            port: 587,
+            ignoreTLS: true,
+            secure: false,
+            secureConnection: false,
             auth: {
               user,
               pass,
+            },
+            tls: {
+              rejectUnauthorized: false,
             },
           },
           defaults: {
