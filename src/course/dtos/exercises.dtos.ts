@@ -184,6 +184,12 @@ export class UpdateExercise extends PartialType(CreateExercise) {
 }
 
 export class CheckExerciseDto {
+  // ID del usuario que responde
+  @ApiProperty()
+  @IsInt()
+  @IsNotEmpty()
+  userId: number;
+
   // Respuestas de las diferentes preguntas.
 
   @ApiProperty()
@@ -230,6 +236,22 @@ export class FeedbackExerciseDto {
   @Expose()
   @IsString()
   feedback: string;
+
+  /**
+   * Yachay ganado por completar el ejercicio correctamente.
+   */
+  @ApiProperty({ description: 'Yachay ganado por completar el ejercicio.' })
+  @Expose()
+  @IsNumber()
+  yachayEarned?: number;
+
+  /**
+   * Dificultad del ejercicio.
+   */
+  @ApiProperty({ description: 'Dificultad del ejercicio.' })
+  @Expose()
+  @IsString()
+  difficulty?: string;
 }
 
 export class ExerciseForTeacher {

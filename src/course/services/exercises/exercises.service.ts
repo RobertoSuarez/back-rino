@@ -14,6 +14,7 @@ import { Repository } from 'typeorm';
 import { GeminiService } from '../../../openai/services/gemini/gemini.service';
 import { DateTime } from 'luxon';
 import { formatDateFrontend } from '../../../common/constants';
+import { TransactionHelper } from '../../../game-transactions/helpers/transaction.helper';
 
 @Injectable()
 export class ExercisesService {
@@ -21,6 +22,7 @@ export class ExercisesService {
     @InjectRepository(Exercise) private exerciseRepo: Repository<Exercise>,
     @InjectRepository(Activity) private activityRepo: Repository<Activity>,
     private geminiService: GeminiService,
+    private transactionHelper: TransactionHelper,
   ) {}
 
   frasesPositivas: string[] = [
@@ -324,6 +326,22 @@ export class ExercisesService {
     return { id: result.id };
   }
 
+  /**
+   * Calcula el Yachay a otorgar según la dificultad del ejercicio
+   */
+  private calculateYachayReward(difficulty: string): number {
+    switch (difficulty) {
+      case 'Fácil':
+        return 5;
+      case 'Medio':
+        return 10;
+      case 'Difícil':
+        return 15;
+      default:
+        return 5; // Por defecto, si no se especifica dificultad
+    }
+  }
+
   async checkAnswer(
     exerciseId: number,
     answer: CheckExerciseDto,
@@ -338,6 +356,8 @@ export class ExercisesService {
     let result: FeedbackExerciseDto = {
       qualification: 0,
       feedback: '',
+      yachayEarned: 0,
+      difficulty: exercise.difficulty,
     };
 
     switch (exercise.typeExercise) {
@@ -472,6 +492,27 @@ export class ExercisesService {
           result.qualification = 0;
         }
         break;
+    }
+
+    // Otorgar Yachay proporcional a la calificación obtenida (solo si calificación >= 7)
+    if (result.qualification >= 7) {
+      const yachayBase = this.calculateYachayReward(exercise.difficulty);
+      // Calcular Yachay proporcional: (calificación / 10) * yachayBase
+      const yachayReward = Math.round((result.qualification / 10) * yachayBase);
+      result.yachayEarned = yachayReward;
+
+      try {
+        // Crear transacción de Yachay
+        await this.transactionHelper.rewardActivityCompletion(
+          answer.userId,
+          exerciseId,
+          yachayReward,
+          `Ejercicio completado con ${result.qualification}/10 (${exercise.difficulty})`,
+        );
+      } catch (error) {
+        // Si falla la transacción, no afecta el resultado del ejercicio
+        console.error('Error al otorgar Yachay:', error);
+      }
     }
 
     return result;

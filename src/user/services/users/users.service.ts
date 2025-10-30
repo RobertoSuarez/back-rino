@@ -231,7 +231,10 @@ export class UsersService {
   }
 
   async findById(id: number) {
-    const user = await this._userRepo.findOneBy({ id });
+    const user = await this._userRepo.findOne({
+      where: { id },
+      relations: ['institution'],
+    });
     if (!user) {
       throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
     }
@@ -241,7 +244,8 @@ export class UsersService {
   async findAll(page: number = 1, limit: number = 10, search?: string): Promise<PaginatedUsersResponseDto> {
     const skip = (page - 1) * limit;
     
-    let queryBuilder = this._userRepo.createQueryBuilder('user');
+    let queryBuilder = this._userRepo.createQueryBuilder('user')
+      .leftJoinAndSelect('user.institution', 'institution');
     
     if (search) {
       queryBuilder = queryBuilder
@@ -272,6 +276,12 @@ export class UsersService {
         requiredUpdate: user.requiredUpdate,
         isVerified: user.isVerified,
         approved: user.approved,
+        institutionId: user.institutionId,
+        institution: user.institution ? {
+          id: user.institution.id,
+          name: user.institution.name,
+          logoUrl: user.institution.logoUrl,
+        } : undefined,
       })),
       total,
       page,
@@ -296,6 +306,12 @@ export class UsersService {
         status: user.status,
         typeUser: user.typeUser,
         requiredUpdate: user.requiredUpdate,
+        institutionId: user.institutionId,
+        institution: user.institution ? {
+          id: user.institution.id,
+          name: user.institution.name,
+          logoUrl: user.institution.logoUrl,
+        } : undefined,
       }
     };
   }
@@ -412,6 +428,10 @@ export class UsersService {
       user.urlAvatar = payload.urlAvatar;
     }
 
+    if (payload.institutionId !== undefined) {
+      user.institutionId = payload.institutionId;
+    }
+
     await this._userRepo.save(user);
 
     return {
@@ -526,7 +546,10 @@ export class UsersService {
   }
 
   async getProfile(userId: number) {
-    const user = await this._userRepo.findOneBy({ id: userId });
+    const user = await this._userRepo.findOne({
+      where: { id: userId },
+      relations: ['institution'],
+    });
     if (!user) {
       throw new Error('User not found');
     }
@@ -548,6 +571,13 @@ export class UsersService {
       followers,
       score: score,
       gem: user.yachay,
+      typeUser: user.typeUser,  // ← AGREGADO
+      institutionId: user.institutionId,
+      institution: user.institution ? {
+        id: user.institution.id,
+        name: user.institution.name,
+        logoUrl: user.institution.logoUrl,
+      } : null,
     };
   }
 }

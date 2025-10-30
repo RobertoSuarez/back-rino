@@ -31,5 +31,6 @@ import { Followers } from '../database/entities/followers.entity';
   ],
   controllers: [AuthController, FollowersController, UsersController],
   providers: [AuthService, FollowersService, UsersService],
+  exports: [JwtModule, UsersService],
 })
 export class UserModule {}

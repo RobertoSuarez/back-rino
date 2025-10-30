@@ -2,6 +2,8 @@ import {
   Column,
   Entity,
   Index,
+  JoinColumn,
+  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -23,6 +25,8 @@ import { ActivityProgressUser } from './activityProgress.entity';
 import { AssessmentOfUser } from './assessmentOfUser.entity';
 import { LearningPath } from './learningPath.entity';
 import { LearningPathSubscription } from './learningPathSubscription.entity';
+import { Institution } from './institution.entity';
+import { GameTransaction } from './gameTransaction.entity';
 
 @Entity()
 export class User extends BaseTable {
@@ -130,4 +134,14 @@ export class User extends BaseTable {
 
   @OneToMany(() => LearningPathSubscription, (lps) => lps.student)
   learningPathSubscriptions: LearningPathSubscription[];
+
+  @ManyToOne(() => Institution, (institution) => institution.users, { nullable: true })
+  @JoinColumn({ name: 'institutionId' })
+  institution: Institution;
+
+  @Column({ nullable: true })
+  institutionId: number;
+
+  @OneToMany(() => GameTransaction, (gt) => gt.user)
+  gameTransactions: GameTransaction[];
 }

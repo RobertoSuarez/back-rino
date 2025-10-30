@@ -12,6 +12,8 @@ import { Tema } from 'src/database/entities/tema.entity';
 import { Activity } from 'src/database/entities/activity.entity';
 import { ChapterProgressUser } from 'src/database/entities/chapterProgressUser.entity';
 import { TemaProgressUser } from 'src/database/entities/temaProgressUser.entity';
+import { GameTransaction } from '../database/entities/gameTransaction.entity';
+import { Institution } from '../database/entities/institution.entity';
 import { AdminStatisticsController } from './controllers/admin-statistics/admin-statistics.controller';
 import { AdminStatisticsService } from './service/admin-statistics/admin-statistics.service';
 
@@ -26,6 +28,8 @@ import { AdminStatisticsService } from './service/admin-statistics/admin-statist
       Activity,
       ChapterProgressUser,
       TemaProgressUser,
+      GameTransaction,
+      Institution,
     ]),
     JwtModule.registerAsync({
       inject: [ConfigService],

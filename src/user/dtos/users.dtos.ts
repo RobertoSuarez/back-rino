@@ -59,6 +59,18 @@ export class UserDto {
   @Expose()
   @ApiProperty()
   readonly approved: boolean;
+
+  @Expose()
+  @ApiProperty()
+  readonly institutionId?: number;
+
+  @Expose()
+  @ApiProperty()
+  readonly institution?: {
+    id: number;
+    name: string;
+    logoUrl: string;
+  };
 }
 
 export class CreateUserDto {
@@ -129,6 +141,11 @@ export class UserUpdateDto {
   @IsString()
   @IsOptional()
   readonly urlAvatar?: string;
+
+  @ApiProperty()
+  @IsInt()
+  @IsOptional()
+  readonly institutionId?: number;
 }
 
 export class LivesWithGemsDto {

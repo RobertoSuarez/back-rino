@@ -15,6 +15,7 @@ import { Subscription } from '../../../database/entities/subscription.entity';
 import { Tema } from '../../../database/entities/tema.entity';
 import { User } from '../../../database/entities/user.entity';
 import { In, IsNull, Repository } from 'typeorm';
+import { TransactionHelper } from '../../../game-transactions/helpers/transaction.helper';
 
 @Injectable()
 export class ActivityService {
@@ -28,6 +29,7 @@ export class ActivityService {
     private chapterProgressRepo: Repository<ChapterProgressUser>,
     @InjectRepository(Subscription)
     private subscriptionRepo: Repository<Subscription>,
+    private transactionHelper: TransactionHelper,
     @InjectRepository(Course) private courseRepo: Repository<Course>,
   ) {}
 
@@ -205,7 +207,26 @@ export class ActivityService {
 
     this.updateProgressChapter(activityID, userId);
 
-    // Calculate the amount of gems based on the accuracy percentage
+    // Calcular precisión en escala 0-10
+    // precision ya está en porcentaje (0-100), convertir a escala 0-10
+    const precisionScale = precision / 10; // Ejemplo: 100% = 10, 80% = 8
+
+    // Calcular Mullu: Precisión × 2
+    const mulluReward = Math.round(precisionScale * 2);
+
+    // Otorgar Mullu usando el sistema de transacciones
+    try {
+      await this.transactionHelper.rewardAchievement(
+        userId,
+        mulluReward,
+        `Actividad completada: ${activity.title}`,
+        activityID,
+      );
+    } catch (error) {
+      console.error('Error al otorgar Mullu por actividad:', error);
+    }
+
+    // Mantener el sistema antiguo de gems para Yachay (por compatibilidad)
     let gems = 0;
     if (activityProgress.accuracy >= 75) {
       gems = 50;
@@ -227,6 +248,7 @@ export class ActivityService {
       accuracy: activityProgress.accuracy,
       activity: activityProgress.activity.title,
       gems: gems,
+      mulluEarned: mulluReward, // Agregar Mullu ganado a la respuesta
     };
   }
 
