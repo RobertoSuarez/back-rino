@@ -1,9 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { ActivityProgressUser } from '../../../database/entities/activityProgress.entity';
 import { User } from '../../../database/entities/user.entity';
-import { Repository } from 'typeorm';
+import { GameTransaction, ResourceType } from '../../../database/entities/gameTransaction.entity';
+import { Institution } from '../../../database/entities/institution.entity';
 import { Course } from 'src/database/entities/course.entity';
+
+interface AdvancedLeaderboardOptions {
+  period: string;
+  startDate?: Date;
+  endDate?: Date;
+  resourceType: string;
+  institutionId?: number;
+  limit: number;
+}
 
 @Injectable()
 export class StatisticsService {
@@ -13,7 +24,11 @@ export class StatisticsService {
     @InjectRepository(ActivityProgressUser)
     private _activityProgressUserRepository: Repository<ActivityProgressUser>,
     @InjectRepository(Course)
-    private _courseRepository: Repository<Course>
+    private _courseRepository: Repository<Course>,
+    @InjectRepository(GameTransaction)
+    private _gameTransactionRepository: Repository<GameTransaction>,
+    @InjectRepository(Institution)
+    private _institutionRepository: Repository<Institution>
   ) {}
 
   async getTopUsers() {
@@ -91,5 +106,115 @@ export class StatisticsService {
       .groupBy('activityProgressUser.userId')
       .getRawOne();
     return result ? parseInt(result['score']) : 0;
+  }
+
+  private getDateRange(period: string): { startDate: Date; endDate: Date } {
+    const now = new Date();
+    const endDate = new Date(now);
+    let startDate = new Date(now);
+
+    switch (period) {
+      case 'today':
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case 'week':
+        startDate.setDate(now.getDate() - 7);
+        break;
+      case 'month':
+        startDate.setMonth(now.getMonth() - 1);
+        break;
+      case 'year':
+        startDate.setFullYear(now.getFullYear() - 1);
+        break;
+      default:
+        startDate = new Date(0); // Desde el inicio
+    }
+
+    return { startDate, endDate };
+  }
+
+  async getAdvancedLeaderboard(options: AdvancedLeaderboardOptions) {
+    const { period, startDate, endDate, resourceType, institutionId, limit } = options;
+    
+    // Determinar rango de fechas
+    const dateRange = startDate && endDate 
+      ? { startDate, endDate }
+      : this.getDateRange(period);
+
+    // Construir consulta base para transacciones
+    let query = this._gameTransactionRepository
+      .createQueryBuilder('gt')
+      .select([
+        'user.id as id',
+        'user.firstName as firstName', 
+        'user.lastName as lastName',
+        'user.urlAvatar as urlAvatar',
+        'user.yachay as currentYachay',
+        'user.tumis as currentTumis', 
+        'user.mullu as currentMullu',
+        'institution.name as institutionName',
+        'COALESCE(SUM(CASE WHEN gt.resourceType = :resourceType THEN gt.amount ELSE 0 END), 0) as periodScore'
+      ])
+      .leftJoin('gt.user', 'user')
+      .leftJoin('user.institution', 'institution')
+      .where('gt.createdAt BETWEEN :startDate AND :endDate', {
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate
+      })
+      .andWhere('gt.transactionType IN (:...transactionTypes)', {
+        transactionTypes: ['earn', 'bonus', 'reward']
+      })
+      .groupBy('user.id, institution.name')
+      .orderBy('periodScore', 'DESC')
+      .limit(limit);
+
+    // Agregar filtros
+    if (institutionId) {
+      query = query.andWhere('user.institutionId = :institutionId', { institutionId });
+    }
+
+    // Parametrizar tipo de recurso
+    query.setParameters({ resourceType });
+
+    const results = await query.getRawMany();
+
+    // Formatear resultados
+    const formattedResults = results.map((result, index) => ({
+      id: result.id,
+      firstName: result.firstname,
+      lastName: result.lastname,
+      url: result.urlavatar 
+        ? result.urlavatar
+        : `https://ui-avatars.com/api/?name=${result.firstname?.split(' ')[0]}+${result.lastname?.split(' ')[0]}&background=1B802F&color=fff`,
+      institutionName: result.institutionname || 'Independiente',
+      periodScore: parseInt(result.periodscore) || 0,
+      currentYachay: result.currentyachay || 0,
+      currentTumis: result.currenttumis || 0,
+      currentMullu: result.currentmullu || 0,
+      rank: index + 1,
+      resourceType,
+      period,
+      dateRange
+    }));
+
+    return {
+      users: formattedResults,
+      meta: {
+        period,
+        resourceType,
+        institutionId,
+        dateRange,
+        totalUsers: formattedResults.length,
+        generatedAt: new Date()
+      }
+    };
+  }
+
+  async getInstitutions() {
+    return await this._institutionRepository.find({
+      where: { status: 'active' },
+      order: { name: 'ASC' },
+      select: ['id', 'name', 'description', 'logoUrl']
+    });
   }
 }

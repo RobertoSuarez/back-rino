@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ChaptersController } from './controllers/chapters/chapters.controller';
 import { CoursesController } from './controllers/courses/courses.controller';
 import { CoursesService } from './services/courses/courses.service';
@@ -25,6 +25,7 @@ import { Activity } from '../database/entities/activity.entity';
 import { Exercise } from '../database/entities/exercise.entity';
 import { OpenaiModule } from '../openai/openai.module';
 import { ActivityProgressUser } from '../database/entities/activityProgress.entity';
+import { GameTransactionsModule } from '../game-transactions/game-transactions.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { ActivityProgressUser } from '../database/entities/activityProgress.enti
       }),
     }),
     OpenaiModule,
+    forwardRef(() => GameTransactionsModule),
   ],
   controllers: [
     ChaptersController,

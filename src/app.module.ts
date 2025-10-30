@@ -19,6 +19,8 @@ import * as path from 'path';
 import { LearningPathModule } from './learning-path/learning-path.module';
 import { TeacherModule } from './teacher/teacher.module';
 import { AdminModule } from './admin/admin.module';
+import { InstitutionModule } from './institution/institution.module';
+import { GameTransactionsModule } from './game-transactions/game-transactions.module';
 
 @Module({
   imports: [
@@ -68,6 +70,8 @@ import { AdminModule } from './admin/admin.module';
     LearningPathModule,
     TeacherModule,
     AdminModule,
+    InstitutionModule,
+    GameTransactionsModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [],
