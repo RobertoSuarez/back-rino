@@ -4,7 +4,7 @@ import { ConfigKey } from 'src/database/entities/configkey.entity';
 import { Repository } from 'typeorm';
 
 const SERVICE_OPENAI = 'OPENAI';
-const SERVICE_GEMINI = 'GEMINI';
+const SERVICE_GEMINI = 'GEMINI_API_KEY';
 
 @Injectable()
 export class ConfigkeyService {

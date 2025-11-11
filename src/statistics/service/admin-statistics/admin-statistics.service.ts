@@ -63,25 +63,6 @@ export class AdminStatisticsService {
       .select('AVG(progress.score)', 'average')
       .getRawOne();
 
-    // Top 5 cursos por número de usuarios
-    const topCourses = await this._courseRepository
-      .createQueryBuilder('course')
-      .leftJoin('course.subscriptions', 'subscription')
-      .select('course.id', 'id')
-      .addSelect('course.title', 'title')
-      .addSelect('COUNT(subscription.id)', 'count')
-      .groupBy('course.id')
-      .orderBy('count', 'DESC')
-      .limit(5)
-      .getRawMany();
-      
-    // Mapear los resultados para mantener la consistencia con el frontend
-    const mappedTopCourses = topCourses.map(course => ({
-      id: course.id,
-      title: course.title,
-      userCount: parseInt(course.count || '0')
-    }));
-
     return {
       totalUsers,
       totalCourses,
@@ -91,7 +72,6 @@ export class AdminStatisticsService {
       newUsersLastMonth,
       activeUsers: parseInt(activeUsers?.count || '0'),
       avgScore: parseFloat(avgScores?.average || '0').toFixed(2),
-      topCourses: mappedTopCourses,
     };
   }
 
@@ -100,6 +80,19 @@ export class AdminStatisticsService {
    */
   async getUsersStats() {
     const totalUsers = await this._userRepository.count();
+    
+    // Contar estudiantes y profesores
+    const totalStudents = await this._userRepository.count({
+      where: { typeUser: 'student' },
+    });
+
+    const totalTeachers = await this._userRepository.count({
+      where: { typeUser: 'teacher' },
+    });
+
+    const totalAdmins = await this._userRepository.count({
+      where: { typeUser: 'admin' },
+    });
     
     // Usuarios por tipo
     const usersByType = await this._userRepository
@@ -124,6 +117,9 @@ export class AdminStatisticsService {
 
     return {
       totalUsers,
+      totalStudents,
+      totalTeachers,
+      totalAdmins,
       usersByType,
       usersByStatus,
       verifiedUsers,
@@ -318,7 +314,9 @@ export class AdminStatisticsService {
       .addSelect('course.description', 'description')
       .addSelect('COUNT(subscription.id)', 'userCount')
       .groupBy('course.id')
-      .orderBy('userCount', 'DESC')
+      .addGroupBy('course.title')
+      .addGroupBy('course.description')
+      .orderBy('COUNT(subscription.id)', 'DESC')
       .limit(10)
       .getRawMany();
   }
@@ -532,6 +530,55 @@ export class AdminStatisticsService {
         count: parseInt(item.count),
       })),
     };
+  }
+
+  /**
+   * Obtiene estadísticas de temas completados en un período específico
+   */
+  async getTemasCompletion(period: string = 'monthly') {
+    let format: string;
+    let dateFormat: string;
+    let subtractUnit: moment.unitOfTime.DurationConstructor;
+    let limit: number;
+
+    switch (period) {
+      case 'daily':
+        format = 'YYYY-MM-DD';
+        dateFormat = 'DD/MM';
+        subtractUnit = 'days';
+        limit = 30;
+        break;
+      case 'weekly':
+        format = 'YYYY-WW';
+        dateFormat = 'WW/YYYY';
+        subtractUnit = 'weeks';
+        limit = 12;
+        break;
+      case 'monthly':
+      default:
+        format = 'YYYY-MM';
+        dateFormat = 'MM/YYYY';
+        subtractUnit = 'months';
+        limit = 12;
+        break;
+    }
+
+    const startDate = moment().subtract(limit, subtractUnit).startOf(subtractUnit as any).toDate();
+
+    const result = await this._temaProgressUserRepository
+      .createQueryBuilder('progress')
+      .select(`TO_CHAR(progress.createdAt, '${format}')`, 'period')
+      .addSelect('COUNT(DISTINCT progress.userId)', 'count')
+      .where('progress.createdAt >= :startDate', { startDate })
+      .groupBy('period')
+      .orderBy('period', 'ASC')
+      .getRawMany();
+
+    // Formatear las fechas para la visualización
+    return result.map(item => ({
+      period: moment(item.period, format).format(dateFormat),
+      count: parseInt(item.count),
+    }));
   }
 
   /**

@@ -3,13 +3,17 @@ import {
   Controller,
   Delete,
   Get,
+  HttpStatus,
   Param,
   ParseIntPipe,
   Patch,
   Post,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { plainToClass } from 'class-transformer';
 import {
   CreateTemaDto,
@@ -19,6 +23,8 @@ import {
 import { TemaService } from '../../../course/services/tema/tema.service';
 import { AuthGuard } from '../../../user/guards/auth/auth.guard';
 import { ChaptersGPTService } from 'src/openai/services/chapters/chaptersGPT.service';
+import { GenerateImageService } from 'src/openai/services/generate-image/generate-image.service';
+import { ApiConsumes, ApiOperation } from '@nestjs/swagger';
 
 @Controller('tema')
 @UseGuards(AuthGuard)
@@ -26,6 +32,7 @@ export class TemaController {
   constructor(
     private _temaService: TemaService,
     private _chaptersGPTService: ChaptersGPTService,
+    private _generateImageService: GenerateImageService,
   ) {}
 
   @Get()
@@ -73,6 +80,19 @@ export class TemaController {
   ) {
     const result = await this._temaService.updateTema(temaId, payload);
     return plainToClass(TemaDto, result, { excludeExtraneousValues: true });
+  }
+
+  @Post('upload-image')
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Subir imagen de fondo para tema' })
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadImage(@UploadedFile() file: Express.Multer.File) {
+    const url = await this._generateImageService.uploadImage(file);
+    return {
+      statusCode: HttpStatus.CREATED,
+      message: 'Imagen subida exitosamente',
+      data: { url },
+    };
   }
 
   @Delete(':id')

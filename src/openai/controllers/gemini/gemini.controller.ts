@@ -18,6 +18,13 @@ class GenerateTemaContentDto {
   courseTitle: string;
 }
 
+class GenerateTheoryWithPromptDto {
+  prompt: string;
+  temaTitle: string;
+  chapterTitle: string;
+  courseTitle: string;
+}
+
 @Controller('ai')
 @UseGuards(AuthGuard)
 export class GeminiController {
@@ -49,5 +56,16 @@ export class GeminiController {
       payload.courseTitle,
     );
     return content;
+  }
+
+  @Post('generate-theory-with-prompt')
+  async generateTheoryWithPrompt(@Body() payload: GenerateTheoryWithPromptDto) {
+    const theory = await this.geminiService.generateTheoryWithPrompt(
+      payload.prompt,
+      payload.temaTitle,
+      payload.chapterTitle,
+      payload.courseTitle,
+    );
+    return { theory };
   }
 }
