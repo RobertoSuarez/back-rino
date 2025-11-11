@@ -74,4 +74,9 @@ export class AdminStatisticsController {
   async getResourceUsage() {
     return await this._adminStatisticsService.getResourceUsage();
   }
+
+  @Get('temas/completion')
+  async getTemasCompletion(@Query('period') period: string = 'monthly') {
+    return await this._adminStatisticsService.getTemasCompletion(period);
+  }
 }

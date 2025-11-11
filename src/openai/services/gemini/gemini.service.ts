@@ -139,6 +139,50 @@ export class GeminiService {
   }
 
   /**
+   * Genera teoría con un prompt personalizado del usuario
+   * @param prompt Prompt personalizado del usuario
+   * @param temaTitle Título del tema
+   * @param chapterTitle Título del capítulo
+   * @param courseTitle Título del curso
+   * @returns Teoría generada en HTML con emojis y estructura atractiva
+   */
+  async generateTheoryWithPrompt(
+    prompt: string,
+    temaTitle: string,
+    chapterTitle: string,
+    courseTitle: string,
+  ): Promise<string> {
+    const theoryPrompt = `Eres un profesor de ciberseguridad creativo y entusiasta que crea contenido educativo para estudiantes de 12-14 años.
+
+CONTEXTO:
+- Tema: ${temaTitle}
+- Capítulo: ${chapterTitle}
+- Curso: ${courseTitle}
+
+SOLICITUD DEL USUARIO:
+${prompt}
+
+INSTRUCCIONES IMPORTANTES:
+1. Genera contenido en HTML válido (puedes usar etiquetas HTML básicas como <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>)
+2. INCLUYE EMOJIS RELEVANTES en los títulos y puntos clave para hacerlo atractivo
+3. Estructura el contenido de forma llamativa y fácil de entender:
+   - Comienza con una introducción enganchante
+   - Usa encabezados para organizar las secciones
+   - Incluye viñetas o listas numeradas
+   - Destaca conceptos importantes con <strong>
+   - Usa emojis para ilustrar ideas (🔒 para seguridad, ⚠️ para advertencias, ✅ para consejos, 🎯 para objetivos, etc.)
+4. Mantén un tono amigable y motivador
+5. Incluye ejemplos prácticos y relevantes
+6. Termina con un resumen o conclusión
+7. Extensión: 600-1000 palabras
+8. Asegúrate de que sea educativo pero entretenido
+
+IMPORTANTE: Responde ÚNICAMENTE con el HTML del contenido, sin explicaciones adicionales.`;
+
+    return await this.generateContent(theoryPrompt);
+  }
+
+  /**
    * Genera feedback para ejercicio de selección única
    * @param answerSelect Respuesta del usuario
    * @param answerSelectCorrect Respuesta correcta

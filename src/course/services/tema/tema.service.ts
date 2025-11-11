@@ -41,6 +41,7 @@ export class TemaService {
         id: tema.id,
         title: tema.title,
         shortDescription: tema.shortDescription,
+        theory: tema.theory,
         urlBackground: tema.urlBackground,
         index: tema.index,
         completedActivities: 0,

@@ -27,6 +27,7 @@ import { LearningPath } from './learningPath.entity';
 import { LearningPathSubscription } from './learningPathSubscription.entity';
 import { Institution } from './institution.entity';
 import { GameTransaction } from './gameTransaction.entity';
+import { AmaautaFeedbackRating } from './amaautaFeedbackRating.entity';
 
 @Entity()
 export class User extends BaseTable {
@@ -144,4 +145,7 @@ export class User extends BaseTable {
 
   @OneToMany(() => GameTransaction, (gt) => gt.user)
   gameTransactions: GameTransaction[];
+
+  @OneToMany(() => AmaautaFeedbackRating, (afr) => afr.user)
+  amaautaFeedbackRatings: AmaautaFeedbackRating[];
 }

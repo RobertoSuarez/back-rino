@@ -26,13 +26,8 @@ export class StudentChatService {
       throw new NotFoundException('Usuario no encontrado');
     }
     
-    // Verificar si el usuario es un estudiante
-    if (user.typeUser !== 'student') {
-      throw new ForbiddenException('Solo los estudiantes pueden crear chats de estudiante');
-    }
-    
     const chat = new Chat();
-    chat.title = 'Nuevo chat de estudiante';
+    chat.title = 'Nuevo chat con Amauta';
     chat.user = user;
     chat.type = 'student'; // Agregamos un tipo para diferenciar los chats de estudiantes
     return await this.chatRepository.save(chat);
@@ -42,11 +37,6 @@ export class StudentChatService {
     const user = await this.userRepository.findOneBy({ id: userId });
     if (!user) {
       throw new NotFoundException('Usuario no encontrado');
-    }
-    
-    // Verificar si el usuario es un estudiante
-    if (user.typeUser !== 'student') {
-      throw new ForbiddenException('Solo los estudiantes pueden acceder a los chats de estudiante');
     }
     
     const data = await this.chatRepository.find({
