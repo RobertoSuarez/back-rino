@@ -17,6 +17,20 @@ export class GeminiService {
   private modelInitialization: Promise<void> | null = null;
   private readonly defaultModel = 'gemini-2.0-flash-lite-001';
 
+  // Palabras clave que indican contenido inapropiado
+  private readonly inappropriateKeywords = [
+    // Violencia
+    'asesinar', 'matar', 'golpear', 'herir', 'atacar', 'violencia', 'pelear',
+    // Contenido sexual
+    'pichola', 'pene', 'verga', 'polla', 'sexo', 'pornografía', 'desnudo', 'sexual',
+    // Acoso y abuso
+    'violar', 'abusar', 'acoso', 'hostigar', 'intimidar', 'amenaza',
+    // Drogas y sustancias
+    'droga', 'cocaína', 'heroína', 'marihuana', 'meth', 'fentanilo',
+    // Otros inapropiados
+    'suicidio', 'muerte', 'bomba', 'arma', 'explosivo', 'terrorismo',
+  ];
+
   constructor(
     private readonly configService: ConfigService,
     private readonly configkeyService: ConfigkeyService,
@@ -68,17 +82,48 @@ export class GeminiService {
   }
 
   /**
+   * Valida si el contenido contiene palabras o temas inapropiados
+   * @param content Contenido a validar
+   * @returns true si el contenido es inapropiado, false si es apropiado
+   */
+  private isInappropriateContent(content: string): boolean {
+    if (!content) return false;
+    
+    const lowerContent = content.toLowerCase();
+    
+    // Verificar palabras clave inapropiadas
+    for (const keyword of this.inappropriateKeywords) {
+      if (lowerContent.includes(keyword)) {
+        this.logger.warn(`Contenido inapropiado detectado: "${keyword}"`);
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  /**
    * Genera una descripción para un curso basado en su título
    * @param title Título del curso
    * @returns Descripción generada
    */
   async generateCourseDescription(title: string): Promise<string> {
-    const prompt = `Genera una descripción detallada y atractiva para un curso educativo titulado "${title}". 
-    La descripción debe ser un párrafo único, destacar los beneficios del curso y que tiene ac, 
-    a quién va dirigido (estudiantes de Educación General Básica Superior que generalmente tienen entre 12 a 14 años) 
-    y qué aprenderán los estudiantes. Usa un tono profesional pero amigable.
-    No quiero que digas explícitamente que es para estudiantes de Educación General Básica Superior ni la edad.
-    Ya que ellos mismos van a poder leer esa descripción`;
+    // Validar contenido del título
+    if (this.isInappropriateContent(title)) {
+      throw new Error('No es posible generar contenido con ese título. Por favor, utiliza un título apropiado para un curso de ciberseguridad.');
+    }
+    const prompt = `Eres un experto en educación de ciberseguridad para niños y adolescentes. 
+Genera una descripción detallada y atractiva para un curso de ciberseguridad titulado "${title}" en la plataforma Cyber Imperium.
+
+INSTRUCCIONES:
+1. La descripción debe ser un párrafo único y cautivador
+2. Destaca los beneficios prácticos del curso para protegerse en línea
+3. Menciona que los estudiantes aprenderán sobre seguridad digital y protección personal
+4. Usa un tono amigable, motivador y accesible para estudiantes de 12-14 años
+5. Incluye referencias a conceptos de seguridad como protección, privacidad, conciencia digital
+6. NO menciones explícitamente la edad ni el nivel educativo
+7. Haz que suene emocionante y relevante para su vida digital
+8. Máximo 150 palabras`;
 
     return this.generateContent(prompt);
   }
@@ -95,10 +140,19 @@ export class GeminiService {
     courseTitle: string,
     courseDescription: string,
   ): Promise<string> {
-    const prompt = `Genera una descripción concisa y clara para un capítulo titulado "${chapterTitle}" 
-    que forma parte del curso "${courseTitle}". Contexto del curso: "${courseDescription}".
-    La descripción debe tener entre 80 y 120 palabras, explicar qué temas se cubrirán en este capítulo 
-    y cómo se relaciona con el objetivo general del curso.`;
+    const prompt = `Eres un educador de ciberseguridad creativo para estudiantes de 12-14 años.
+Genera una descripción concisa y clara para un capítulo titulado "${chapterTitle}" 
+que forma parte del curso de ciberseguridad "${courseTitle}" en Cyber Imperium.
+
+Contexto del curso: "${courseDescription}"
+
+INSTRUCCIONES:
+1. La descripción debe tener entre 80 y 120 palabras
+2. Explica qué temas de ciberseguridad se cubrirán en este capítulo
+3. Destaca por qué es importante para su seguridad digital
+4. Usa un tono motivador y accesible
+5. Incluye emojis relevantes (🔐, ⚠️, 🛡️, etc.) para hacerlo atractivo
+6. Muestra cómo se relaciona con el objetivo general del curso`;
 
     return this.generateContent(prompt);
   }
@@ -116,22 +170,36 @@ export class GeminiService {
     courseTitle: string,
   ): Promise<{ shortDescription: string; theory: string }> {
     // Generar descripción corta
-    const shortDescPrompt = `Genera una descripción breve (máximo 50 palabras) para un tema educativo titulado "${temaTitle}" 
-    que forma parte del capítulo "${chapterTitle}" en el curso "${courseTitle}".`;
+    const shortDescPrompt = `Eres un educador de ciberseguridad para niños de 12-14 años.
+Genera una descripción breve (máximo 50 palabras) para un tema de ciberseguridad titulado "${temaTitle}" 
+que forma parte del capítulo "${chapterTitle}" en el curso "${courseTitle}" de Cyber Imperium.
+
+La descripción debe:
+- Ser clara y atractiva
+- Explicar por qué es importante para su seguridad digital
+- Incluir un emoji relevante`;
     
     const shortDescription = await this.generateContent(shortDescPrompt);
 
     // Generar teoría completa
-    const theoryPrompt = `Genera contenido educativo completo y detallado para un tema titulado "${temaTitle}" 
-    que forma parte del capítulo "${chapterTitle}" en el curso "${courseTitle}".
-    El contenido debe incluir:
-    1. Una introducción al tema
-    2. Desarrollo de los conceptos principales
-    3. Ejemplos prácticos cuando sea posible
-    4. Conclusión o resumen
-    
-    El contenido debe ser informativo, bien estructurado y con un enfoque didáctico.
-    Extensión aproximada: 500-800 palabras.`;
+    const theoryPrompt = `Eres un profesor de ciberseguridad entusiasta que crea contenido educativo para estudiantes de 12-14 años.
+Genera contenido educativo completo y detallado para un tema titulado "${temaTitle}" 
+que forma parte del capítulo "${chapterTitle}" en el curso "${courseTitle}" de Cyber Imperium.
+
+El contenido debe incluir:
+1. Una introducción cautivadora al tema
+2. Desarrollo de los conceptos principales de seguridad digital
+3. Ejemplos prácticos y relevantes para su vida digital
+4. Consejos de protección y buenas prácticas
+5. Conclusión con un resumen de lo aprendido
+
+INSTRUCCIONES IMPORTANTES:
+- Usa un tono amigable y motivador
+- Incluye emojis relevantes (🔐, ⚠️, 🛡️, ✅, 🎯, etc.)
+- Destaca la importancia de la seguridad en línea
+- Proporciona ejemplos del mundo real que los adolescentes puedan entender
+- Estructura el contenido de forma clara y fácil de seguir
+- Extensión aproximada: 500-800 palabras`;
     
     const theory = await this.generateContent(theoryPrompt);
 
@@ -152,12 +220,20 @@ export class GeminiService {
     chapterTitle: string,
     courseTitle: string,
   ): Promise<string> {
-    const theoryPrompt = `Eres un profesor de ciberseguridad creativo y entusiasta que crea contenido educativo para estudiantes de 12-14 años.
+    // Validar contenido del prompt personalizado
+    if (this.isInappropriateContent(prompt)) {
+      throw new Error('❌ No es posible generar contenido con esa solicitud. Por favor, utiliza un prompt apropiado relacionado con ciberseguridad y seguridad digital. Recuerda que Cyber Imperium es una plataforma educativa para estudiantes de 12-14 años.');
+    }
+
+    const theoryPrompt = `Eres Amauta, un profesor de ciberseguridad creativo y entusiasta que crea contenido educativo para estudiantes de 12-14 años en Cyber Imperium.
+Te inspiras en la sabiduría de los chasquis incas, los mensajeros que transmitían información de forma segura en el imperio inca.
+Ahora ayudas a los estudiantes a ser "chasquis digitales" - mensajeros seguros en el mundo digital.
 
 CONTEXTO:
 - Tema: ${temaTitle}
 - Capítulo: ${chapterTitle}
 - Curso: ${courseTitle}
+- Plataforma: Cyber Imperium
 
 SOLICITUD DEL USUARIO:
 ${prompt}
@@ -170,12 +246,13 @@ INSTRUCCIONES IMPORTANTES:
    - Usa encabezados para organizar las secciones
    - Incluye viñetas o listas numeradas
    - Destaca conceptos importantes con <strong>
-   - Usa emojis para ilustrar ideas (🔒 para seguridad, ⚠️ para advertencias, ✅ para consejos, 🎯 para objetivos, etc.)
-4. Mantén un tono amigable y motivador
-5. Incluye ejemplos prácticos y relevantes
-6. Termina con un resumen o conclusión
-7. Extensión: 600-1000 palabras
-8. Asegúrate de que sea educativo pero entretenido
+   - Usa emojis para ilustrar ideas (🔒 para seguridad, ⚠️ para advertencias, ✅ para consejos, 🎯 para objetivos, 🛡️ para protección, etc.)
+4. Mantén un tono amigable, motivador y culturalmente respetuoso
+5. Incluye ejemplos prácticos y relevantes para su vida digital
+6. Cuando sea apropiado, usa la metáfora de los chasquis incas como guardianes de la información segura
+7. Termina con un resumen o conclusión que refuerce la importancia de la seguridad digital
+8. Extensión: 600-1000 palabras
+9. Asegúrate de que sea educativo pero entretenido
 
 IMPORTANTE: Responde ÚNICAMENTE con el HTML del contenido, sin explicaciones adicionales.`;
 
@@ -194,16 +271,19 @@ IMPORTANTE: Responde ÚNICAMENTE con el HTML del contenido, sin explicaciones ad
     answerSelectCorrect: string,
     statement: string,
   ): Promise<FeedbackExerciseDto> {
-    const prompt = `Evalúa la respuesta del usuario y proporciona retroalimentación educativa.
+    const prompt = `Eres Amauta, un profesor de ciberseguridad que proporciona retroalimentación educativa a estudiantes de 12-14 años en Cyber Imperium.
+Evalúa la respuesta del usuario sobre ciberseguridad y proporciona retroalimentación constructiva.
 
-PREGUNTA: ${statement}
+PREGUNTA DE CIBERSEGURIDAD: ${statement}
 RESPUESTA CORRECTA: ${answerSelectCorrect}
 RESPUESTA DEL USUARIO: ${answerSelect}
 
 INSTRUCCIONES:
-- Si la respuesta es correcta, felicita al usuario
-- Si es incorrecta, explica por qué y proporciona la información correcta
-- Sé constructivo y educativo
+- Si la respuesta es correcta, felicita al usuario y explica por qué es importante este conocimiento para su seguridad digital
+- Si es incorrecta, explica por qué de forma amigable y proporciona la información correcta
+- Sé constructivo, educativo y motivador
+- Usa emojis relevantes en la retroalimentación
+- Destaca la importancia de este concepto para protegerse en línea
 
 IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional:
 
@@ -227,16 +307,19 @@ IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional
     answerSelectsCorrect: string[],
     answerSelect: string[],
   ): Promise<FeedbackExerciseDto> {
-    const prompt = `Evalúa la respuesta del usuario en un ejercicio de selección múltiple.
+    const prompt = `Eres Amauta, un profesor de ciberseguridad que proporciona retroalimentación educativa a estudiantes de 12-14 años en Cyber Imperium.
+Evalúa la respuesta del usuario en un ejercicio de selección múltiple sobre ciberseguridad.
 
-PREGUNTA: ${statement}
-RESPUESTAS CORRECTAS: ${answerSelectsCorrect.join(', ')}
-RESPUESTAS DEL USUARIO: ${answerSelect.join(', ')}
+PREGUNTA DE CIBERSEGURIDAD: ${statement}
+RESPUESTA CORRECTAS: ${answerSelectsCorrect.join(', ')}
+RESPUESTA DEL USUARIO: ${answerSelect.join(', ')}
 
 INSTRUCCIONES:
 - Menciona qué opciones seleccionó correctamente y cuáles no
-- Explica por qué cada opción es correcta o incorrecta
-- Proporciona retroalimentación constructiva y educativa
+- Explica por qué cada opción es correcta o incorrecta en el contexto de ciberseguridad
+- Proporciona retroalimentación constructiva, educativa y motivadora
+- Destaca la importancia de cada concepto para su seguridad digital
+- Usa emojis relevantes
 
 IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional:
 
@@ -260,18 +343,25 @@ IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional
     answerOrderFragmentCodeCorrect: string[],
     answerOrderFragmentCodeUser: string[],
   ): Promise<FeedbackExerciseDto> {
-    const prompt = `Necesito que me des una retroalimentación educativa para un ejercicio de ordenar fragmentos de código.
-      Esta es la Pregunta: ${statement}
-      Este es el orden correcto: ${answerOrderFragmentCodeCorrect.join(' -> ')}
-      El orden del usuario: ${answerOrderFragmentCodeUser.join(' -> ')}
-      
-      Por favor, proporciona una retroalimentación constructiva sobre el orden de los fragmentos de código.
-      
-      Responde en formato JSON con la siguiente estructura:
-      {
-        "qualification": [número del 0 al 10],
-        "feedback": "[tu retroalimentación aquí]"
-      }`;
+    const prompt = `Eres Amauta, un profesor de ciberseguridad que proporciona retroalimentación educativa a estudiantes de 12-14 años en Cyber Imperium.
+Proporciona retroalimentación educativa para un ejercicio de ordenar fragmentos de código de seguridad.
+
+PREGUNTA: ${statement}
+ORDEN CORRECTO: ${answerOrderFragmentCodeCorrect.join(' -> ')}
+ORDEN DEL USUARIO: ${answerOrderFragmentCodeUser.join(' -> ')}
+
+INSTRUCCIONES:
+- Proporciona una retroalimentación constructiva sobre el orden de los fragmentos
+- Explica por qué el orden correcto es importante para la seguridad
+- Si hay errores, ayuda al estudiante a entender la lógica correcta
+- Sé motivador y educativo
+- Usa emojis relevantes
+
+Responde en formato JSON con la siguiente estructura:
+{
+  "qualification": [número del 0 al 10],
+  "feedback": "[tu retroalimentación aquí]"
+}`;
 
     return this.getFeedbackExerciseGeneric(prompt);
   }
@@ -288,18 +378,25 @@ IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional
     answerOrderLineCode: string[],
     answerOrderLineCodeUser: string[],
   ): Promise<FeedbackExerciseDto> {
-    const prompt = `Necesito que me des una retroalimentación educativa para un ejercicio de ordenar líneas de código.
-      Esta es la Pregunta: ${statement}
-      Este es el orden correcto: ${answerOrderLineCode.join('\n')}
-      El orden del usuario: ${answerOrderLineCodeUser.join('\n')}
-      
-      Por favor, proporciona una retroalimentación constructiva sobre el orden de las líneas de código.
-      
-      Responde en formato JSON con la siguiente estructura:
-      {
-        "qualification": [número del 0 al 10],
-        "feedback": "[tu retroalimentación aquí]"
-      }`;
+    const prompt = `Eres Amauta, un profesor de ciberseguridad que proporciona retroalimentación educativa a estudiantes de 12-14 años en Cyber Imperium.
+Proporciona retroalimentación educativa para un ejercicio de ordenar líneas de código de seguridad.
+
+PREGUNTA: ${statement}
+ORDEN CORRECTO: ${answerOrderLineCode.join('\n')}
+ORDEN DEL USUARIO: ${answerOrderLineCodeUser.join('\n')}
+
+INSTRUCCIONES:
+- Proporciona una retroalimentación constructiva sobre el orden de las líneas
+- Explica por qué el orden correcto es importante para la seguridad
+- Si hay errores, ayuda al estudiante a entender la lógica correcta
+- Sé motivador y educativo
+- Usa emojis relevantes
+
+Responde en formato JSON con la siguiente estructura:
+{
+  "qualification": [número del 0 al 10],
+  "feedback": "[tu retroalimentación aquí]"
+}`;
 
     return this.getFeedbackExerciseGeneric(prompt);
   }
@@ -316,18 +413,26 @@ IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional
     correctAnswerFindError: string,
     userAnswerFindError: string,
   ): Promise<FeedbackExerciseDto> {
-    const prompt = `Necesito que me des una retroalimentación educativa para un ejercicio de encontrar errores.
-      Esta es la Pregunta: ${statement}
-      La respuesta correcta: ${correctAnswerFindError}
-      La respuesta del usuario: ${userAnswerFindError}
-      
-      Por favor, proporciona una retroalimentación constructiva sobre la identificación del error.
-      
-      Responde en formato JSON con la siguiente estructura:
-      {
-        "qualification": [número del 0 al 10],
-        "feedback": "[tu retroalimentación aquí]"
-      }`;
+    const prompt = `Eres Amauta, un profesor de ciberseguridad que proporciona retroalimentación educativa a estudiantes de 12-14 años en Cyber Imperium.
+Proporciona retroalimentación educativa para un ejercicio de encontrar errores de seguridad.
+
+PREGUNTA: ${statement}
+RESPUESTA CORRECTA: ${correctAnswerFindError}
+RESPUESTA DEL USUARIO: ${userAnswerFindError}
+
+INSTRUCCIONES:
+- Proporciona una retroalimentación constructiva sobre la identificación del error
+- Explica por qué es importante detectar este tipo de errores de seguridad
+- Si el estudiante no identificó el error correctamente, ayúdale a entender dónde está
+- Destaca las consecuencias de no detectar este tipo de errores
+- Sé motivador y educativo
+- Usa emojis relevantes
+
+Responde en formato JSON con la siguiente estructura:
+{
+  "qualification": [número del 0 al 10],
+  "feedback": "[tu retroalimentación aquí]"
+}`;
 
     return this.getFeedbackExerciseGeneric(prompt);
   }
@@ -342,23 +447,28 @@ IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional
     statement: string,
     answer: string,
   ): Promise<FeedbackExerciseDto> {
-    const prompt = `Necesito que me des una retroalimentación educativa para un ejercicio de escribir código.
-      Esta es la Pregunta: ${statement}
-      La respuesta del usuario: ${answer}
-      
-      Por favor, evalúa el código del usuario considerando:
-      - Correctitud sintáctica
-      - Lógica de programación
-      - Buenas prácticas
-      - Cumplimiento del objetivo
-      
-      Proporciona una retroalimentación constructiva y educativa.
-      
-      Responde en formato JSON con la siguiente estructura:
-      {
-        "qualification": [número del 0 al 10],
-        "feedback": "[tu retroalimentación aquí]"
-      }`;
+    const prompt = `Eres Amauta, un profesor de ciberseguridad que proporciona retroalimentación educativa a estudiantes de 12-14 años en Cyber Imperium.
+Proporciona retroalimentación educativa para un ejercicio de escribir código de seguridad.
+
+PREGUNTA: ${statement}
+RESPUESTA DEL USUARIO: ${answer}
+
+Por favor, evalúa el código del usuario considerando:
+- Correctitud sintáctica
+- Lógica de seguridad
+- Buenas prácticas de ciberseguridad
+- Cumplimiento del objetivo de seguridad
+- Importancia para proteger sistemas y datos
+
+Proporciona una retroalimentación constructiva, educativa y motivadora.
+Usa emojis relevantes para hacerlo más atractivo.
+Destaca por qué el código correcto es importante para la seguridad.
+
+Responde en formato JSON con la siguiente estructura:
+{
+  "qualification": [número del 0 al 10],
+  "feedback": "[tu retroalimentación aquí]"
+}`;
 
     return this.getFeedbackExerciseGeneric(prompt);
   }
