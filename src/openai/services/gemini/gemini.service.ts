@@ -260,6 +260,144 @@ IMPORTANTE: Responde ÚNICAMENTE con el HTML del contenido, sin explicaciones ad
   }
 
   /**
+   * Genera una descripción para un curso con un prompt personalizado
+   * @param courseTitle Título del curso
+   * @param prompt Prompt personalizado del usuario
+   * @returns Descripción generada
+   */
+  async generateCourseDescriptionWithPrompt(
+    courseTitle: string,
+    prompt: string,
+  ): Promise<string> {
+    // Validar contenido del prompt personalizado
+    if (this.isInappropriateContent(prompt)) {
+      throw new Error('❌ No es posible generar contenido con esa solicitud. Por favor, utiliza un prompt apropiado relacionado con ciberseguridad y seguridad digital. Recuerda que Cyber Imperium es una plataforma educativa para estudiantes de 12-14 años.');
+    }
+
+    const descriptionPrompt = `Eres Amauta, un profesor de ciberseguridad creativo que crea descripciones atractivas para cursos en Cyber Imperium.
+Te inspiras en la sabiduría de los chasquis incas, los mensajeros que transmitían información de forma segura.
+
+CONTEXTO:
+- Título del Curso: ${courseTitle}
+- Plataforma: Cyber Imperium
+- Audiencia: Estudiantes de 12-14 años
+
+SOLICITUD DEL USUARIO:
+${prompt}
+
+INSTRUCCIONES IMPORTANTES:
+1. Genera una descripción detallada y cautivadora para el curso
+2. La descripción debe ser un párrafo único o varios párrafos bien estructurados
+3. Destaca los beneficios prácticos del curso para protegerse en línea
+4. Menciona que los estudiantes aprenderán sobre seguridad digital y protección personal
+5. Usa un tono amigable, motivador y accesible para estudiantes de 12-14 años
+6. Incluye referencias a conceptos de seguridad como protección, privacidad, conciencia digital
+7. Haz que suene emocionante y relevante para su vida digital
+8. Puedes incluir emojis relevantes (🔐, 🛡️, ⚠️, ✅, etc.)
+9. Extensión aproximada: 150-250 palabras
+10. Asegúrate de que sea educativo pero entretenido
+
+IMPORTANTE: Responde ÚNICAMENTE con la descripción del curso, sin explicaciones adicionales.`;
+
+    return await this.generateContent(descriptionPrompt);
+  }
+
+  /**
+   * Genera una descripción para un capítulo con un prompt personalizado
+   * @param chapterTitle Título del capítulo
+   * @param courseTitle Título del curso
+   * @param courseDescription Descripción del curso
+   * @param prompt Prompt personalizado del usuario
+   * @returns Descripción generada
+   */
+  async generateChapterDescriptionWithPrompt(
+    chapterTitle: string,
+    courseTitle: string,
+    courseDescription: string,
+    prompt: string,
+  ): Promise<string> {
+    // Validar contenido del prompt personalizado
+    if (this.isInappropriateContent(prompt)) {
+      throw new Error('❌ No es posible generar contenido con esa solicitud. Por favor, utiliza un prompt apropiado relacionado con ciberseguridad y seguridad digital. Recuerda que Cyber Imperium es una plataforma educativa para estudiantes de 12-14 años.');
+    }
+
+    const descriptionPrompt = `Eres Amauta, un profesor de ciberseguridad creativo que crea descripciones atractivas para capítulos en Cyber Imperium.
+Te inspiras en la sabiduría de los chasquis incas, los mensajeros que transmitían información de forma segura.
+
+CONTEXTO:
+- Título del Capítulo: ${chapterTitle}
+- Título del Curso: ${courseTitle}
+- Descripción del Curso: ${courseDescription}
+- Plataforma: Cyber Imperium
+- Audiencia: Estudiantes de 12-14 años
+
+SOLICITUD DEL USUARIO:
+${prompt}
+
+INSTRUCCIONES IMPORTANTES:
+1. Genera una descripción concisa y clara para el capítulo
+2. La descripción debe tener entre 80 y 150 palabras
+3. Explica qué temas de ciberseguridad se cubrirán en este capítulo
+4. Destaca por qué es importante para su seguridad digital
+5. Usa un tono motivador y accesible
+6. Incluye emojis relevantes (🔐, ⚠️, 🛡️, ✅, 🎯, etc.) para hacerlo atractivo
+7. Muestra cómo se relaciona con el objetivo general del curso
+8. Haz que suene emocionante y relevante para su vida digital
+9. Asegúrate de que sea educativo pero entretenido
+
+IMPORTANTE: Responde ÚNICAMENTE con la descripción del capítulo, sin explicaciones adicionales.`;
+
+    return await this.generateContent(descriptionPrompt);
+  }
+
+  /**
+   * Genera una descripción corta para un tema con un prompt personalizado
+   * @param temaTitle Título del tema
+   * @param chapterTitle Título del capítulo
+   * @param courseTitle Título del curso
+   * @param prompt Prompt personalizado del usuario
+   * @returns Descripción generada
+   */
+  async generateTemaDescriptionWithPrompt(
+    temaTitle: string,
+    chapterTitle: string,
+    courseTitle: string,
+    prompt: string,
+  ): Promise<string> {
+    // Validar contenido del prompt personalizado
+    if (this.isInappropriateContent(prompt)) {
+      throw new Error('❌ No es posible generar contenido con esa solicitud. Por favor, utiliza un prompt apropiado relacionado con ciberseguridad y seguridad digital. Recuerda que Cyber Imperium es una plataforma educativa para estudiantes de 12-14 años.');
+    }
+
+    const descriptionPrompt = `Eres Amauta, un profesor de ciberseguridad creativo que crea descripciones cortas atractivas para temas en Cyber Imperium.
+Te inspiras en la sabiduría de los chasquis incas, los mensajeros que transmitían información de forma segura.
+
+CONTEXTO:
+- Título del Tema: ${temaTitle}
+- Título del Capítulo: ${chapterTitle}
+- Título del Curso: ${courseTitle}
+- Plataforma: Cyber Imperium
+- Audiencia: Estudiantes de 12-14 años
+
+SOLICITUD DEL USUARIO:
+${prompt}
+
+INSTRUCCIONES IMPORTANTES:
+1. Genera una descripción corta y clara para el tema
+2. La descripción debe tener entre 50 y 100 palabras
+3. Explica brevemente qué se aprenderá en este tema
+4. Destaca por qué es importante para su seguridad digital
+5. Usa un tono motivador y accesible
+6. Incluye emojis relevantes (🔐, ⚠️, 🛡️, ✅, 🎯, etc.) para hacerlo atractivo
+7. Haz que suene emocionante y relevante para su vida digital
+8. Asegúrate de que sea educativo pero entretenido
+
+IMPORTANTE: Responde ÚNICAMENTE con la descripción del tema, sin explicaciones adicionales.`;
+
+    return await this.generateContent(descriptionPrompt);
+  }
+
+  /**
    * Genera feedback para ejercicio de selección única
    * @param answerSelect Respuesta del usuario
    * @param answerSelectCorrect Respuesta correcta

@@ -215,6 +215,31 @@ export class CheckExerciseDto {
   @ApiProperty()
   @IsString()
   answerFindError: string;
+
+  @ApiProperty({ type: [String] })
+  @IsArray()
+  answerVerticalOrdering: string[];
+
+  @ApiProperty({ type: [String] })
+  @IsArray()
+  answerHorizontalOrdering: string[];
+
+  @ApiProperty({ type: [String] })
+  @IsArray()
+  answerPhishingSelection: string[];
+
+  @ApiProperty({
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        left: { type: 'string' },
+        right: { type: 'string' },
+      },
+    },
+  })
+  @IsArray()
+  answerMatchPairs: { left: string; right: string }[];
 }
 
 /**

@@ -25,6 +25,25 @@ class GenerateTheoryWithPromptDto {
   courseTitle: string;
 }
 
+class GenerateCourseDescriptionWithPromptDto {
+  courseTitle: string;
+  prompt: string;
+}
+
+class GenerateChapterDescriptionWithPromptDto {
+  chapterTitle: string;
+  courseTitle: string;
+  courseDescription: string;
+  prompt: string;
+}
+
+class GenerateTemaDescriptionWithPromptDto {
+  temaTitle: string;
+  chapterTitle: string;
+  courseTitle: string;
+  prompt: string;
+}
+
 @Controller('ai')
 @UseGuards(AuthGuard)
 export class GeminiController {
@@ -67,5 +86,36 @@ export class GeminiController {
       payload.courseTitle,
     );
     return { theory };
+  }
+
+  @Post('generate-course-description-with-prompt')
+  async generateCourseDescriptionWithPrompt(@Body() payload: GenerateCourseDescriptionWithPromptDto) {
+    const description = await this.geminiService.generateCourseDescriptionWithPrompt(
+      payload.courseTitle,
+      payload.prompt,
+    );
+    return { description };
+  }
+
+  @Post('generate-chapter-description-with-prompt')
+  async generateChapterDescriptionWithPrompt(@Body() payload: GenerateChapterDescriptionWithPromptDto) {
+    const description = await this.geminiService.generateChapterDescriptionWithPrompt(
+      payload.chapterTitle,
+      payload.courseTitle,
+      payload.courseDescription,
+      payload.prompt,
+    );
+    return { description };
+  }
+
+  @Post('generate-tema-description-with-prompt')
+  async generateTemaDescriptionWithPrompt(@Body() payload: GenerateTemaDescriptionWithPromptDto) {
+    const description = await this.geminiService.generateTemaDescriptionWithPrompt(
+      payload.temaTitle,
+      payload.chapterTitle,
+      payload.courseTitle,
+      payload.prompt,
+    );
+    return { description };
   }
 }
