@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { Repository, IsNull, In, Not } from 'typeorm';
 import { LearningPath } from '../../database/entities/learningPath.entity';
 import { LearningPathSubscription } from '../../database/entities/learningPathSubscription.entity';
 import { Course } from '../../database/entities/course.entity';
+import { ActivityProgressUser } from '../../database/entities/activityProgress.entity';
 import { DateTime } from 'luxon';
 import { formatDateFrontend } from '../../common/constants';
 
@@ -16,26 +17,24 @@ export class TeacherDashboardService {
     private subscriptionRepo: Repository<LearningPathSubscription>,
     @InjectRepository(Course)
     private courseRepo: Repository<Course>,
+    @InjectRepository(ActivityProgressUser)
+    private activityProgressRepo: Repository<ActivityProgressUser>,
   ) {}
 
   async getDashboardStats(teacherId: number): Promise<any> {
-    // Obtener todas las rutas del profesor
+    // ... (código existente de rutas y cursos) ...
     const teacherPaths = await this.learningPathRepo.find({
       where: { createdBy: { id: teacherId }, deletedAt: IsNull() },
       relations: ['subscriptions', 'subscriptions.student', 'courses'],
     });
 
     const pathIds = teacherPaths.map(p => p.id);
-
-    // Total de rutas de aprendizaje
     const totalLearningPaths = teacherPaths.length;
 
-    // Total de cursos creados por el profesor
     const totalCourses = await this.courseRepo.count({
       where: { createdBy: { id: teacherId }, deletedAt: IsNull() },
     });
 
-    // Obtener todas las suscripciones activas a las rutas del profesor
     const activeSubscriptions = await this.subscriptionRepo
       .createQueryBuilder('subscription')
       .leftJoinAndSelect('subscription.student', 'student')
@@ -45,11 +44,9 @@ export class TeacherDashboardService {
       .andWhere('learningPath.deletedAt IS NULL')
       .getMany();
 
-    // Total de estudiantes únicos
     const uniqueStudentIds = new Set(activeSubscriptions.map(sub => sub.student.id));
     const totalStudents = uniqueStudentIds.size;
 
-    // Estudiantes recientes (últimos 5)
     const recentStudents = activeSubscriptions
       .sort((a, b) => new Date(b.subscribedAt).getTime() - new Date(a.subscribedAt).getTime())
       .slice(0, 5)
@@ -65,7 +62,6 @@ export class TeacherDashboardService {
         pathName: sub.learningPath.name,
       }));
 
-    // Top rutas por número de estudiantes
     const pathSubscriptionCounts = teacherPaths.map(path => ({
       id: path.id,
       name: path.name,
@@ -78,7 +74,6 @@ export class TeacherDashboardService {
       .sort((a, b) => b.studentsCount - a.studentsCount)
       .slice(0, 5);
 
-    // Cursos recientes del profesor
     const recentCourses = await this.courseRepo
       .createQueryBuilder('course')
       .leftJoinAndSelect('course.chapters', 'chapters', 'chapters.deletedAt IS NULL')
@@ -99,7 +94,6 @@ export class TeacherDashboardService {
       ),
     }));
 
-    // Distribución de estudiantes por ruta
     const studentsByPath = pathSubscriptionCounts
       .filter(p => p.studentsCount > 0)
       .map(p => ({
@@ -107,15 +101,73 @@ export class TeacherDashboardService {
         count: p.studentsCount,
       }));
 
-    // Calcular progreso promedio (simulado por ahora, se puede mejorar con datos reales)
-    const averageProgress = totalStudents > 0 ? Math.round(Math.random() * 30 + 40) : 0;
+    // --- NUEVAS MÉTRICAS DE ACTIVIDAD ---
+    let averageAccuracy = 0;
+    let averageScore = 0;
+    let studentsAtRiskCount = 0;
+    let lowPerformanceStudents = [];
+
+    if (uniqueStudentIds.size > 0) {
+      const studentIdsArray = Array.from(uniqueStudentIds);
+
+      // 1. Promedios Globales (Accuracy y Score)
+      const { avgAccuracy, avgScore } = await this.activityProgressRepo
+        .createQueryBuilder('apu')
+        .select('AVG(apu.accuracy)', 'avgAccuracy')
+        .addSelect('AVG(apu.score)', 'avgScore')
+        .where('apu.userId IN (:...ids)', { ids: studentIdsArray })
+        .getRawOne();
+      
+      averageAccuracy = avgAccuracy ? parseFloat(Number(avgAccuracy).toFixed(1)) : 0;
+      averageScore = avgScore ? parseFloat(Number(avgScore).toFixed(1)) : 0;
+
+      // 2. Estudiantes en Riesgo (Accuracy < 70)
+      // Agrupamos por estudiante para ver su promedio individual
+      const studentsPerformance = await this.activityProgressRepo
+        .createQueryBuilder('apu')
+        .select('apu.userId', 'studentId')
+        .addSelect('AVG(apu.accuracy)', 'avgAcc')
+        .where('apu.userId IN (:...ids)', { ids: studentIdsArray })
+        .groupBy('apu.userId')
+        .having('AVG(apu.accuracy) < :umbral', { umbral: 70 }) 
+        .getRawMany();
+        
+      studentsAtRiskCount = studentsPerformance.length;
+
+      // Obtener detalles de los estudiantes en riesgo (top 5 más críticos)
+      if (studentsAtRiskCount > 0) {
+        const riskyStudentIds = studentsPerformance
+          .sort((a, b) => a.avgAcc - b.avgAcc)
+          .slice(0, 5)
+          .map(s => s.studentId);
+          
+        // Buscamos sus datos en la lista de suscripciones que ya tenemos en memoria
+        // para evitar otra query a UsersRepo
+        lowPerformanceStudents = riskyStudentIds.map(id => {
+          const sub = activeSubscriptions.find(s => s.student.id === id);
+          const performance = studentsPerformance.find(p => p.studentId === id);
+          if (sub) {
+            return {
+              id: sub.student.id,
+              name: `${sub.student.firstName} ${sub.student.lastName}`,
+              avatar: sub.student.urlAvatar,
+              averageAccuracy: parseFloat(Number(performance.avgAcc).toFixed(1))
+            };
+          }
+          return null;
+        }).filter(s => s !== null);
+      }
+    }
 
     return {
       totalStudents,
       totalLearningPaths,
       totalCourses,
       activeSubscriptions: activeSubscriptions.length,
-      averageProgress,
+      averageAccuracy, // Reemplaza a Qualification
+      averageScore,
+      studentsAtRiskCount,
+      lowPerformanceStudents, // Lista de estudiantes en riesgo
       recentStudents,
       topLearningPaths,
       recentCourses: recentCoursesFormatted,

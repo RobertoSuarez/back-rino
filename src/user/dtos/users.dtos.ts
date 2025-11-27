@@ -42,6 +42,10 @@ export class UserDto {
 
   @Expose()
   @ApiProperty()
+  readonly gender?: string;
+
+  @Expose()
+  @ApiProperty()
   readonly status: string;
 
   @Expose()
@@ -141,6 +145,11 @@ export class UserUpdateDto {
   @IsString()
   @IsOptional()
   readonly urlAvatar?: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsOptional()
+  readonly gender?: string;
 
   @ApiProperty()
   @IsInt()

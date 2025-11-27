@@ -11,6 +11,7 @@ import {
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { AuthService } from '../../../user/services/auth/auth.service';
+import { UsersService } from '../../../user/services/users/users.service';
 import {
   ChangePasswordDto,
   LoginDto,
@@ -22,7 +23,10 @@ import { AuthGuard } from '../../../user/guards/auth/auth.guard';
 @ApiTags('Autenticación')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private usersService: UsersService,
+  ) {}
 
   @Post('login')
   @ApiOperation({ summary: 'Inicio de sesión de usuario' })
@@ -38,8 +42,10 @@ export class AuthController {
   @UseGuards(AuthGuard)
   @Get('profile')
   @ApiOperation({ summary: 'Obtiene el perfil del usuario, en base al token' })
-  getProfile(@Request() req) {
-    return req.user;
+  async getProfile(@Request() req) {
+    const userId = req.user.id;
+    const userProfile = await this.usersService.getProfile(userId);
+    return userProfile;
   }
 
   @Post('recover-password')

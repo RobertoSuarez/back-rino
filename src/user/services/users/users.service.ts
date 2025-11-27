@@ -428,6 +428,10 @@ export class UsersService {
       user.urlAvatar = payload.urlAvatar;
     }
 
+    if (payload.gender !== undefined) {
+      user.gender = payload.gender;
+    }
+
     if (payload.institutionId !== undefined) {
       user.institutionId = payload.institutionId;
     }
@@ -442,6 +446,7 @@ export class UsersService {
       birthday: user.birthday ? DateTime.fromJSDate(user.birthday).toFormat(formatDateFrontend) : null,
       whatsApp: user.whatsApp,
       urlAvatar: user.urlAvatar,
+      gender: user.gender,
       status: user.status,
       typeUser: user.typeUser,
     };
@@ -571,7 +576,8 @@ export class UsersService {
       followers,
       score: score,
       gem: user.yachay,
-      typeUser: user.typeUser,  // ← AGREGADO
+      typeUser: user.typeUser,
+      gender: user.gender,
       institutionId: user.institutionId,
       institution: user.institution ? {
         id: user.institution.id,
