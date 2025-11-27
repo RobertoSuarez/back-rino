@@ -241,7 +241,7 @@ export class CoursesService {
     return await this.courseRepo.save({ ...course, ...updateCourseDto });
   }
 
-  async deleteCourse(userId: number, courseId: number) {
+  async deleteCourse(userId: number, courseId: number, userRole?: string) {
     const courses = await this.courseRepo.find({
       relations: {
         createdBy: true,
@@ -252,18 +252,18 @@ export class CoursesService {
       take: 1,
     });
 
-    if (!courses) {
+    if (!courses || courses.length === 0) {
       throw new Error('Course not found');
     }
 
     const course = courses[0];
-    if (course.createdBy.id !== userId) {
+    
+    // Permitir si es el creador O si es admin
+    if (course.createdBy.id !== userId && userRole !== 'admin') {
       throw new Error('Not authorized');
     }
 
-    course.deletedAt = new Date();
-
-    return await this.courseRepo.save(course);
+    return await this.courseRepo.softRemove(course);
   }
 
   // Recupera todos los cursos, y el progreso de cada uno, en base al usuario.

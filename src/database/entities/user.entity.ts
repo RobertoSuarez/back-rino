@@ -56,6 +56,9 @@ export class User extends BaseTable {
   @Column({ type: 'text', nullable: true })
   urlAvatar: string;
 
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  gender: string;
+
   @Column({ type: 'varchar', length: 50 })
   status: string;
 

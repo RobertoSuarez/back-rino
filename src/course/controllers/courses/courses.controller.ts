@@ -145,8 +145,8 @@ export class CoursesController {
     @Request() req,
     @Param('id', ParseIntPipe) courseId: number,
   ) {
-    const { id: userId } = req.user;
-    const result = await this.coursesService.deleteCourse(userId, courseId);
+    const { id: userId, typeUser } = req.user;
+    const result = await this.coursesService.deleteCourse(userId, courseId, typeUser);
     return plainToClass(CourseDto, result, { excludeExtraneousValues: true });
   }
 
