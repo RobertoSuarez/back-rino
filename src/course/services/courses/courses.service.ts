@@ -23,7 +23,7 @@ export class CoursesService {
     @InjectRepository(Chapter) private chapterRepo: Repository<Chapter>,
     @InjectRepository(ChapterProgressUser)
     private chapterProgressRepo: Repository<ChapterProgressUser>,
-  ) {}
+  ) { }
 
   async findAll() {
     const courses = await this.courseRepo
@@ -172,8 +172,9 @@ export class CoursesService {
       relations: ['subscriptions', 'subscriptions.course'],
     });
 
-    const cursoConProgreso = usuario.subscriptions.map<CourseWithProgressDto>(
-      (sub) => {
+    const cursoConProgreso = usuario.subscriptions
+      .filter((sub) => sub.course != null)
+      .map<CourseWithProgressDto>((sub) => {
         return {
           id: sub.course.id,
           title: sub.course.title,
@@ -184,7 +185,7 @@ export class CoursesService {
           progress: sub.progreso,
         };
       },
-    );
+      );
 
     return cursoConProgreso;
   }
@@ -257,7 +258,7 @@ export class CoursesService {
     }
 
     const course = courses[0];
-    
+
     // Permitir si es el creador O si es admin
     if (course.createdBy.id !== userId && userRole !== 'admin') {
       throw new Error('Not authorized');

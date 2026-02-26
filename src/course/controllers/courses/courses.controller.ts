@@ -35,7 +35,7 @@ export class CoursesController {
   constructor(
     private coursesService: CoursesService,
     private _generateImageService: GenerateImageService,
-  ) {}
+  ) { }
 
   @ApiOperation({ summary: 'Obtiene todos los cursos que están públicos' })
   @Get()
