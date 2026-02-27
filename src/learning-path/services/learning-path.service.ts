@@ -301,25 +301,40 @@ export class LearningPathService {
       throw new Error('Ruta de aprendizaje no encontrada o inactiva');
     }
 
-    // Verificar si ya está suscrito
+    // Buscar suscripción existente incluyendo soft-deleted para evitar duplicate key.
     const existingSubscription = await this.subscriptionRepo.findOne({
       where: {
         student: { id: userId },
         learningPath: { id: learningPath.id },
-        deletedAt: IsNull(),
       },
+      withDeleted: true,
     });
 
-    if (existingSubscription) {
+    if (existingSubscription && !existingSubscription.deletedAt) {
       throw new Error('Ya estás suscrito a esta ruta de aprendizaje');
     }
 
-    // Crear la suscripción
-    const subscription = new LearningPathSubscription();
-    subscription.student = await this.userRepo.findOneBy({ id: userId });
-    subscription.learningPath = learningPath;
+    let saved: LearningPathSubscription;
 
-    const saved = await this.subscriptionRepo.save(subscription);
+    if (existingSubscription?.deletedAt) {
+      // Reactivar suscripción eliminada lógicamente.
+      await this.subscriptionRepo.restore(existingSubscription.id);
+
+      existingSubscription.subscribedAt = new Date();
+      existingSubscription.isActive = true;
+      existingSubscription.deletedAt = null;
+
+      saved = await this.subscriptionRepo.save(existingSubscription);
+    } else {
+      // Crear suscripción nueva.
+      const subscription = new LearningPathSubscription();
+      subscription.student = await this.userRepo.findOneBy({ id: userId });
+      subscription.learningPath = learningPath;
+      subscription.isActive = true;
+      subscription.subscribedAt = new Date();
+
+      saved = await this.subscriptionRepo.save(subscription);
+    }
 
     return {
       id: saved.id,
@@ -469,6 +484,8 @@ export class LearningPathService {
       throw new Error('No estás suscrito a esta ruta de aprendizaje');
     }
 
+    subscription.isActive = false;
+    await this.subscriptionRepo.save(subscription);
     await this.subscriptionRepo.softDelete(subscription.id);
   }
 }
