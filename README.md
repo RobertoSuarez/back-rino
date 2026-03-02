@@ -55,7 +55,8 @@ $ npm run test:cov
 
 - Autenticación segura de usuarios
 - Gestión de cursos y contenido educativo
-- Integración con ChatGPT para experiencias de aprendizaje interactivas
+- Integración avanzada con Gemini (usando `@google/genai`) para la generación de ejercicios interactivos en tiempo real
+- Generación estructurada de datos garantizada mediante schemas estrictos en `zod`
 - Sistema de comunidad para compartir conocimiento
 - Estadísticas detalladas de progreso
 
