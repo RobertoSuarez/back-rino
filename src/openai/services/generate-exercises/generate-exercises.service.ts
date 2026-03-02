@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import OpenAI from 'openai';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
+import { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 import { GenerateExerciseDto } from '../../../openai/dtos/exercise.dto';
 import { GenerateQuestionDto } from 'src/openai/dtos/questions.dto';
 import { GenerateExercisesWithPromptDto, GenerateExercisesResponseDto } from '../../../openai/dtos/exercise-generation.dto';
@@ -8,14 +10,14 @@ import { ConfigkeyService } from 'src/parameters/services/configkey/configkey.se
 
 @Injectable()
 export class GenerateExercisesService {
-  constructor(private _configkeyService: ConfigkeyService) {}
+  constructor(private _configkeyService: ConfigkeyService) { }
 
-  private async getGeminiClient() {
+  private async getGeminiClient(): Promise<GoogleGenAI> {
     const apiKey = await this._configkeyService.getKeyGemini();
     if (!apiKey) {
       throw new Error('GEMINI_API_KEY no está configurada en la base de datos');
     }
-    return new GoogleGenerativeAI(apiKey);
+    return new GoogleGenAI({ apiKey });
   }
 
   private readonly toolExerciseSingleSelection: OpenAI.Chat.Completions.ChatCompletionTool =
@@ -594,8 +596,7 @@ export class GenerateExercisesService {
   };
 
   async generateExercise(payload: GenerateExerciseDto) {
-    const genAI = await this.getGeminiClient();
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite-001' });
+    const ai = await this.getGeminiClient();
 
     const typeExerciseMap = {
       'selection_single': 'Selección Simple',
@@ -625,25 +626,18 @@ Responde SIEMPRE en formato JSON con la siguiente estructura:
 Para otros tipos de ejercicios, adapta la estructura según sea necesario.`;
 
     try {
-      const result = await model.generateContent({
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              {
-                text: prompt
-              }
-            ]
-          }
-        ],
-        generationConfig: {
+      const result = await ai.models.generateContent({
+        model: 'gemini-3.1-pro-preview',
+        contents: prompt,
+        config: {
           temperature: 0.7,
-          maxOutputTokens: 2048
+          maxOutputTokens: 2048,
+          responseMimeType: 'application/json'
         }
       });
 
-      const responseText = result.response.text();
-      
+      const responseText = result.text || '';
+
       try {
         // Intentar parsear como JSON
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
@@ -801,233 +795,246 @@ Para otros tipos de ejercicios, adapta la estructura según sea necesario.`;
     };
   };
 
+
   private generateUUID(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
       const r = Math.random() * 16 | 0;
       const v = c === 'x' ? r : (r & 0x3 | 0x8);
       return v.toString(16);
     });
   }
 
-  private buildGenerationPrompt(payload: GenerateExercisesWithPromptDto, types: string[]): string {
-    return `
-Necesito que generes exactamente ${payload.quantity} ejercicios educativos sobre ciberseguridad.
+  // ─── Parser robusto: soporta JSON plano o envuelto en markdown ──────────────
+  private extractJson(text: string): any {
+    // 1) strip markdown code fences: ```json ... ``` o ``` ... ```
+    const stripped = text.replace(/```(?:json)?\s*([\s\S]*?)```/g, '$1').trim();
 
-PARÁMETROS:
-- Tema/Prompt: ${payload.prompt}
-- Dificultad: ${payload.difficulty}
-- Contexto: ${payload.context || 'General'}
-- Tipos de ejercicios: ${types.join(', ')}
-
-INSTRUCCIONES DETALLADAS:
-1. Genera exactamente ${payload.quantity} ejercicios
-2. Distribuye los tipos de ejercicios de manera equilibrada
-3. Cada ejercicio debe ser único, educativo y completo
-4. IMPORTANTE: Asegúrate de completar TODAS las opciones/elementos requeridos
-5. Para selección_single: proporciona EXACTAMENTE 4 opciones, una correcta
-6. Para selección_multiple: proporciona EXACTAMENTE 4 opciones, 2 correctas y 2 incorrectas
-7. Para vertical_ordering: proporciona EXACTAMENTE 5 elementos para ordenar
-8. Para horizontal_ordering: proporciona EXACTAMENTE 5 elementos para ordenar
-9. Para phishing_selection_multiple: proporciona EXACTAMENTE 4 opciones de URLs/emails
-10. Para match_pairs: proporciona EXACTAMENTE 5 pares (izquierda y derecha)
-
-ESTRUCTURA JSON REQUERIDA:
-{
-  "statement": "Pregunta clara y educativa",
-  "difficulty": "Fácil|Medio|Difícil",
-  "typeExercise": "selection_single|selection_multiple|vertical_ordering|horizontal_ordering|phishing_selection_multiple|match_pairs",
-  "optionSelectOptions": ["Opción 1", "Opción 2", "Opción 3", "Opción 4"],
-  "answerSelectCorrect": "Opción correcta",
-  "answerSelectsCorrect": ["Opción 1", "Opción 2"],
-  "optionsVerticalOrdering": ["Elemento 1", "Elemento 2", "Elemento 3", "Elemento 4", "Elemento 5"],
-  "answerVerticalOrdering": ["Elemento 3", "Elemento 1", "Elemento 4", "Elemento 2", "Elemento 5"],
-  "optionsHorizontalOrdering": ["Elemento 1", "Elemento 2", "Elemento 3", "Elemento 4", "Elemento 5"],
-  "answerHorizontalOrdering": ["Elemento 2", "Elemento 4", "Elemento 1", "Elemento 5", "Elemento 3"],
-  "optionsPhishingSelection": ["email@legitimo.com", "phishing@falso.com", "correo@empresa.com", "estafa@malicioso.com"],
-  "answerPhishingSelection": ["phishing@falso.com", "estafa@malicioso.com"],
-  "leftItems": ["Concepto 1", "Concepto 2", "Concepto 3", "Concepto 4", "Concepto 5"],
-  "rightItems": ["Definición A", "Definición B", "Definición C", "Definición D", "Definición E"],
-  "pairs": [{"left": "Concepto 1", "right": "Definición A"}, ...]
-}
-
-TEMAS DE CIBERSEGURIDAD A CONSIDERAR:
-- Phishing y estafas digitales
-- Grooming y captación de menores
-- Identidad digital y suplantación
-- Sexting y sextorsión
-- Ciberacoso (harassment)
-- Stalking digital
-- Hacking y seguridad de contraseñas
-- Privacidad en redes sociales
-    `;
-  }
-
-  private balanceExerciseTypes(types: string[], quantity: number): string[] {
-    const result: string[] = [];
-    const typeCount = Math.ceil(quantity / types.length);
-    
-    for (const type of types) {
-      for (let i = 0; i < typeCount && result.length < quantity; i++) {
-        result.push(type);
-      }
-    }
-    
-    return result.slice(0, quantity);
-  }
-
-  private parseGeminiResponse(responseText: string, quantity: number, difficulty: string) {
-    const exercises = [];
-    
-    try {
-      // Intentar parsear como JSON
-      const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        if (Array.isArray(parsed)) {
-          return parsed.slice(0, quantity).map(ex => this.completeExerciseData(ex, difficulty));
+    // 2) intenta parsear el texto completo
+    const candidates = [stripped, text];
+    for (const candidate of candidates) {
+      // objeto o array raíz
+      for (const regex of [/(\{[\s\S]*\})/, /(\[[\s\S]*\])/]) {
+        const match = candidate.match(regex);
+        if (match) {
+          try { return JSON.parse(match[1]); } catch { }
         }
       }
-    } catch (e) {
-      console.log('No se pudo parsear como JSON, intentando extracción manual');
     }
-
-    // Fallback: crear ejercicios básicos a partir del texto
-    const exerciseBlocks = responseText.split(/(?=Ejercicio \d+:|^)/i).filter(b => b.trim());
-    
-    for (let i = 0; i < Math.min(exerciseBlocks.length, quantity); i++) {
-      const block = exerciseBlocks[i];
-      exercises.push({
-        id: this.generateUUID(),
-        statement: block.substring(0, 200),
-        difficulty: difficulty,
-        typeExercise: 'selection_single',
-        optionSelectOptions: ['Opción 1', 'Opción 2', 'Opción 3', 'Opción 4'],
-        answerSelectCorrect: 'Opción 1',
-        code: '',
-        hint: ''
-      });
-    }
-
-    return exercises.slice(0, quantity);
+    return null;
   }
 
-  private completeExerciseData(exercise: any, difficulty: string): any {
-    const completed = {
-      id: this.generateUUID(),
-      statement: exercise.statement || 'Pregunta sin enunciado',
-      difficulty: exercise.difficulty || difficulty,
-      typeExercise: exercise.typeExercise || 'selection_single',
-      code: exercise.code || '',
-      hint: exercise.hint || '',
-      // Campos para selección
-      optionSelectOptions: exercise.optionSelectOptions || ['Opción 1', 'Opción 2', 'Opción 3', 'Opción 4'],
-      answerSelectCorrect: exercise.answerSelectCorrect || 'Opción 1',
-      answerSelectsCorrect: exercise.answerSelectsCorrect || [],
-      // Campos para ordenamiento vertical
-      optionsVerticalOrdering: exercise.optionsVerticalOrdering || exercise.optionSelectOptions || ['Elemento 1', 'Elemento 2', 'Elemento 3', 'Elemento 4', 'Elemento 5'],
-      answerVerticalOrdering: exercise.answerVerticalOrdering || [],
-      // Campos para ordenamiento horizontal
-      optionsHorizontalOrdering: exercise.optionsHorizontalOrdering || exercise.optionSelectOptions || ['Elemento 1', 'Elemento 2', 'Elemento 3', 'Elemento 4', 'Elemento 5'],
-      answerHorizontalOrdering: exercise.answerHorizontalOrdering || [],
-      // Campos para phishing
-      optionsPhishingSelection: exercise.optionsPhishingSelection || exercise.optionSelectOptions || ['email@legitimo.com', 'phishing@falso.com', 'correo@empresa.com', 'estafa@malicioso.com'],
-      answerPhishingSelection: exercise.answerPhishingSelection || exercise.answerSelectsCorrect || [],
-      phishingContext: exercise.phishingContext || '',
-      phishingImageUrl: exercise.phishingImageUrl || '',
-      // Campos para match pairs
-      optionsMatchPairsLeft: exercise.leftItems || exercise.optionsMatchPairsLeft || ['Concepto 1', 'Concepto 2', 'Concepto 3', 'Concepto 4', 'Concepto 5'],
-      optionsMatchPairsRight: exercise.rightItems || exercise.optionsMatchPairsRight || ['Definición A', 'Definición B', 'Definición C', 'Definición D', 'Definición E'],
-      answerMatchPairs: exercise.pairs || exercise.answerMatchPairs || [],
-      // Campos para código
-      optionOrderFragmentCode: exercise.optionOrderFragmentCode || [],
-      answerOrderFragmentCode: exercise.answerOrderFragmentCode || [],
-      optionOrderLineCode: exercise.optionOrderLineCode || [],
-      answerOrderLineCode: exercise.answerOrderLineCode || [],
-      optionsFindErrorCode: exercise.optionsFindErrorCode || [],
-      answerFindError: exercise.answerFindError || '',
-      answerWriteCode: exercise.answerWriteCode || ''
-    };
-
-    return completed;
+  // ─── Prompt especializado por tipo de ejercicio ──────────────────────────────
+  private buildPromptForType(
+    type: string,
+    payload: GenerateExercisesWithPromptDto,
+  ): string {
+    const jsonExample = `[
+  {
+    "statement": "Enunciado claro y preciso de la pregunta",
+    "difficulty": "${payload.difficulty}",
+    "typeExercise": "${type}",
+    "optionSelectOptions": ["Opción A", "Opción B", "Opción C", "Opción D"],
+    "answerSelectCorrect": "Opción correcta (exactamente igual a una de optionSelectOptions)",
+    "answerSelectsCorrect": ["Correcta 1", "Correcta 2"],
+    "optionsVerticalOrdering": ["Paso 1", "Paso 2", "Paso 3"],
+    "answerVerticalOrdering": ["Paso 2", "Paso 1", "Paso 3"],
+    "optionsHorizontalOrdering": ["Elemento A", "Elemento B"],
+    "answerHorizontalOrdering": ["Elemento B", "Elemento A"],
+    "optionsPhishingSelection": ["legitimo@banco.com", "segur1dad@banc0.com"],
+    "answerPhishingSelection": ["segur1dad@banc0.com"],
+    "phishingContext": "Contexto del phishing",
+    "leftItems": ["Concepto A", "Concepto B"],
+    "rightItems": ["Definición A", "Definición B"],
+    "pairs": [
+      {"left": "Concepto A", "right": "Definición B"},
+      {"left": "Concepto B", "right": "Definición A"}
+    ],
+    "hint": "Una pista opcional"
   }
+]`;
 
-  async generateExercisesWithPrompt(payload: GenerateExercisesWithPromptDto): Promise<GenerateExercisesResponseDto> {
-    const genAI = await this.getGeminiClient();
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite-001' });
-
-    // Determinar tipos de ejercicios a generar
-    const exerciseTypes = payload.exerciseTypes?.length > 0 
-      ? payload.exerciseTypes 
-      : [
-          'selection_single',
-          'selection_multiple',
-          'vertical_ordering',
-          'horizontal_ordering',
-          'phishing_selection_multiple',
-          'match_pairs'
-        ];
-
-    // Si balanceTypes es true, distribuir equitativamente
-    let typesToGenerate = exerciseTypes;
-    if (payload.balanceTypes && exerciseTypes.length > 0) {
-      typesToGenerate = this.balanceExerciseTypes(exerciseTypes, payload.quantity);
-    }
-
-    const prompt = this.buildGenerationPrompt(payload, typesToGenerate);
-
-    const systemPrompt = `Eres un generador experto de ejercicios educativos sobre ciberseguridad para la plataforma Cyber Imperium. 
+    return `Eres un generador experto de ejercicios educativos sobre ciberseguridad para la plataforma Cyber Imperium.
 Debes generar ejercicios claros, precisos y educativos que ayuden a los estudiantes a aprender sobre seguridad digital.
 Cada ejercicio debe ser independiente, completo y tener una respuesta correcta clara.
 
 REGLAS CRÍTICAS:
-- SIEMPRE responde ÚNICAMENTE con un array JSON válido
-- NUNCA incluyas explicaciones, comentarios o texto fuera del JSON
-- TODOS los campos deben estar completos y rellenos
-- Las opciones/elementos NUNCA deben estar vacíos
-- Cada tipo de ejercicio debe tener sus campos específicos completos
+- SIEMPRE responde ÚNICAMENTE con un array JSON válido.
+- NUNCA incluyas explicaciones, comentarios o texto fuera del JSON (ni siquiera etiquetas markdown \`\`\`json).
+- TEMA a evaluar: "${payload.prompt}"
+- CONTEXTO opcional: "${payload.context || 'General'}"
+- TIPO de ejercicio que DEBES generar: "${type}"
+- DIFICULTAD requerida: "${payload.difficulty}"
+- DEBES generar EXACTAMENTE 1 ejercicio de este tipo específico dentro del array.
+- TODOS los campos deben existir en el JSON, rellena con arrays vacíos [] o strings vacíos "" los campos que no apliquen a este tipo de ejercicio.
+- Las opciones/elementos del tipo solicitado NUNCA deben estar vacíos.
 
-Responde SIEMPRE en formato JSON con un array de ejercicios. Ejemplo:
-[
-  {
-    "statement": "¿Qué es phishing?",
-    "difficulty": "Fácil",
-    "typeExercise": "selection_single",
-    "optionSelectOptions": ["Opción 1", "Opción 2", "Opción 3", "Opción 4"],
-    "answerSelectCorrect": "Opción correcta"
+Responde SIEMPRE en formato JSON con un array de ejercicios. Ejemplo de estructura:
+${jsonExample}`;
   }
-]`;
+
+  // ─── Mapea la respuesta de Gemini a la estructura completa esperada por el frontend ──
+  private normalizeExercise(raw: any, type: string, difficulty: string): any {
+    const base = {
+      id: this.generateUUID(),
+      statement: raw.statement || 'Sin enunciado',
+      difficulty: raw.difficulty || difficulty,
+      typeExercise: raw.typeExercise || type,
+      code: raw.code || '',
+      hint: raw.hint || '',
+      // Selección
+      optionSelectOptions: raw.optionSelectOptions || [],
+      answerSelectCorrect: raw.answerSelectCorrect || '',
+      answerSelectsCorrect: raw.answerSelectsCorrect || [],
+      // Ordenamiento vertical
+      optionsVerticalOrdering: raw.optionsVerticalOrdering || [],
+      answerVerticalOrdering: raw.answerVerticalOrdering || [],
+      // Ordenamiento horizontal
+      optionsHorizontalOrdering: raw.optionsHorizontalOrdering || [],
+      answerHorizontalOrdering: raw.answerHorizontalOrdering || [],
+      // Phishing
+      optionsPhishingSelection: raw.optionsPhishingSelection || [],
+      answerPhishingSelection: raw.answerPhishingSelection || [],
+      phishingContext: raw.phishingContext || '',
+      phishingImageUrl: raw.phishingImageUrl || '',
+      // Match pairs
+      leftItems: raw.leftItems || [],
+      rightItems: raw.rightItems || [],
+      pairs: raw.pairs || [],
+      // Código
+      optionOrderFragmentCode: raw.optionOrderFragmentCode || [],
+      answerOrderFragmentCode: raw.answerOrderFragmentCode || [],
+      optionOrderLineCode: raw.optionOrderLineCode || [],
+      answerOrderLineCode: raw.answerOrderLineCode || [],
+      optionsFindErrorCode: raw.optionsFindErrorCode || [],
+      answerFindError: raw.answerFindError || '',
+      answerWriteCode: raw.answerWriteCode || '',
+    };
+
+    // También mapear los campos de payload del backend (match pairs usa leftItems/rightItems)
+    return base;
+  }
+
+  // ─── Genera UN ejercicio de un tipo específico llamando a Gemini ─────────────
+  private async generateOneExercise(
+    type: string,
+    payload: GenerateExercisesWithPromptDto,
+    ai: GoogleGenAI,
+  ): Promise<any> {
+    const prompt = this.buildPromptForType(type, payload);
+
+    const exerciseSchema = z.object({
+      statement: z.string().describe('Enunciado claro y preciso del ejercicio'),
+      difficulty: z.string().describe('Fácil, Medio o Difícil'),
+      typeExercise: z.string().describe('Exactamente el tipo solicitado, ej: selection_single'),
+      hint: z.string().optional().describe('Una pista opcional'),
+
+      optionSelectOptions: z.array(z.string()).optional().describe('Opciones de selección simple/múltiple'),
+      answerSelectCorrect: z.string().optional().describe('Respuesta correcta para selección simple'),
+      answerSelectsCorrect: z.array(z.string()).optional().describe('Respuestas correctas para selección múltiple'),
+
+      optionsVerticalOrdering: z.array(z.string()).optional().describe('Elementos a ordenar verticalmente'),
+      answerVerticalOrdering: z.array(z.string()).optional().describe('Orden correcto vertical'),
+
+      optionsHorizontalOrdering: z.array(z.string()).optional().describe('Elementos a ordenar horizontalmente'),
+      answerHorizontalOrdering: z.array(z.string()).optional().describe('Orden correcto horizontal'),
+
+      optionsPhishingSelection: z.array(z.string()).optional().describe('Correos o URLs realistas para evaluar phishing'),
+      answerPhishingSelection: z.array(z.string()).optional().describe('Correos o URLs que son efectivamente phishing'),
+      phishingContext: z.string().optional().describe('Contexto del escenario de phishing'),
+
+      leftItems: z.array(z.string()).optional().describe('Conceptos de la izquierda (match_pairs)'),
+      rightItems: z.array(z.string()).optional().describe('Definiciones a la derecha desordenadas (match_pairs)'),
+      pairs: z.array(
+        z.object({
+          left: z.string(),
+          right: z.string()
+        })
+      ).optional().describe('Pares correctos mapeados (match_pairs)')
+    });
+
+    const arraySchema = z.array(exerciseSchema);
+
+    try {
+      const result = await ai.models.generateContent({
+        model: 'gemini-3.1-pro-preview',
+        contents: prompt,
+        config: {
+          temperature: 0.8,
+          responseMimeType: 'application/json',
+          responseJsonSchema: zodToJsonSchema(arraySchema as any),
+        },
+      });
+
+      let raw = this.extractJson(result.text || '');
+
+      // Si la IA responde con un array (ej: [ { statement: ... } ]), tomamos el primer elemento
+      if (Array.isArray(raw)) {
+        raw = raw[0];
+      }
+
+      if (!raw || !raw.statement) {
+        console.warn(`[AI] No se pudo parsear ejercicio tipo ${type}, usando fallback. Raw recibido:`, result.text);
+        return this.fallbackExercise(type, payload.difficulty);
+      }
+
+      return this.normalizeExercise(raw, type, payload.difficulty);
+    } catch (err: any) {
+      console.error(`[AI] Error generando ejercicio tipo ${type}:`, err.message || err);
+      throw new Error(`Error de Gemini (${type}): ${err.message || err}`);
+    }
+  }
+
+  private fallbackExercise(type: string, difficulty: string): any {
+    return this.normalizeExercise({
+      statement: `Ejercicio de práctica sobre ciberseguridad (${type})`,
+      difficulty,
+      typeExercise: type,
+    }, type, difficulty);
+  }
+
+  // ─── Distribuye los tipos de ejercicio para cubrir la cantidad pedida ────────
+  private buildTypesList(exerciseTypes: string[], quantity: number): string[] {
+    const result: string[] = [];
+    let i = 0;
+    while (result.length < quantity) {
+      result.push(exerciseTypes[i % exerciseTypes.length]);
+      i++;
+    }
+    return result;
+  }
+
+  async generateExercisesWithPrompt(payload: GenerateExercisesWithPromptDto): Promise<GenerateExercisesResponseDto> {
+    const ai = await this.getGeminiClient();
+
+    const allTypes = [
+      'selection_single',
+      'selection_multiple',
+      'vertical_ordering',
+      'horizontal_ordering',
+      'phishing_selection_multiple',
+      'match_pairs',
+    ];
+
+    const selectedTypes = (payload.exerciseTypes?.length > 0)
+      ? payload.exerciseTypes
+      : allTypes;
+
+    // Construimos la lista de tipos a generar (1 por ejercicio)
+    const typesToGenerate = this.buildTypesList(selectedTypes, payload.quantity);
 
     const startTime = Date.now();
 
-    try {
-      const result = await model.generateContent({
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              {
-                text: systemPrompt + '\n\n' + prompt
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 4096
-        }
-      });
+    // Lanzar todas las generaciones EN PARALELO
+    const promises = typesToGenerate.map((type) =>
+      this.generateOneExercise(type, payload, ai),
+    );
 
-      const responseText = result.response.text();
-      const exercises = this.parseGeminiResponse(responseText, payload.quantity, payload.difficulty);
+    const exercises = await Promise.all(promises);
 
-      return {
-        count: exercises.length,
-        exercises,
-        generationTime: Date.now() - startTime
-      };
-    } catch (error) {
-      console.error('Error al generar ejercicios con Gemini:', error);
-      throw new Error(`Error al generar ejercicios: ${error.message}`);
-    }
+    return {
+      count: exercises.length,
+      exercises,
+      generationTime: Date.now() - startTime,
+    };
   }
 }
