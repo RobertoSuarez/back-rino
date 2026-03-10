@@ -619,7 +619,6 @@ Responde SIEMPRE en formato JSON con la siguiente estructura:
   "typeExercise": "${payload.typeExercise}",
   "optionSelectOptions": ["Opción 1", "Opción 2", "Opción 3", "Opción 4"],
   "answerSelectCorrect": "Opción correcta",
-  "code": "",
   "hint": ""
 }
 
@@ -658,7 +657,6 @@ Para otros tipos de ejercicios, adapta la estructura según sea necesario.`;
         typeExercise: payload.typeExercise,
         optionSelectOptions: ['Opción 1', 'Opción 2', 'Opción 3', 'Opción 4'],
         answerSelectCorrect: 'Opción 1',
-        code: '',
         hint: ''
       };
     } catch (error) {
@@ -828,28 +826,54 @@ Para otros tipos de ejercicios, adapta la estructura según sea necesario.`;
     type: string,
     payload: GenerateExercisesWithPromptDto,
   ): string {
+    let typeSpecificFields = '';
+
+    switch (type) {
+      case 'selection_single':
+        typeSpecificFields = `
+    "optionSelectOptions": ["Opción A", "Opción B", "Opción C", "Opción D"],
+    "answerSelectCorrect": "Opción correcta (exactamente igual a una de optionSelectOptions)",
+`;
+        break;
+      case 'selection_multiple':
+        typeSpecificFields = `
+    "optionSelectOptions": ["Opción A", "Opción B", "Opción C", "Opción D"],
+    "answerSelectsCorrect": ["Correcta 1", "Correcta 2"],
+`;
+        break;
+      case 'vertical_ordering':
+        typeSpecificFields = `
+    "optionsVerticalOrdering": ["Paso 1", "Paso 2", "Paso 3"],
+    "answerVerticalOrdering": ["Paso 2", "Paso 1", "Paso 3"],
+`;
+        break;
+      case 'horizontal_ordering':
+        typeSpecificFields = `
+    "optionsHorizontalOrdering": ["Elemento A", "Elemento B"],
+    "answerHorizontalOrdering": ["Elemento B", "Elemento A"],
+`;
+        break;
+      case 'phishing_selection_multiple':
+        typeSpecificFields = `
+    "optionsPhishingSelection": ["legitimo@banco.com", "segur1dad@banc0.com"],
+    "answerPhishingSelection": ["segur1dad@banc0.com"],
+    "phishingContext": "Contexto del phishing",
+`;
+        break;
+      case 'match_pairs':
+        typeSpecificFields = `
+    "optionsMatchPairsLeft": ["Concepto A", "Concepto B"],
+    "optionsMatchPairsRight": ["Definición A", "Definición B"],
+    "answerMatchPairsString": "Concepto A|Definición A, Concepto B|Definición B",
+`;
+        break;
+    }
+
     const jsonExample = `[
   {
     "statement": "Enunciado claro y preciso de la pregunta",
     "difficulty": "${payload.difficulty}",
-    "typeExercise": "${type}",
-    "optionSelectOptions": ["Opción A", "Opción B", "Opción C", "Opción D"],
-    "answerSelectCorrect": "Opción correcta (exactamente igual a una de optionSelectOptions)",
-    "answerSelectsCorrect": ["Correcta 1", "Correcta 2"],
-    "optionsVerticalOrdering": ["Paso 1", "Paso 2", "Paso 3"],
-    "answerVerticalOrdering": ["Paso 2", "Paso 1", "Paso 3"],
-    "optionsHorizontalOrdering": ["Elemento A", "Elemento B"],
-    "answerHorizontalOrdering": ["Elemento B", "Elemento A"],
-    "optionsPhishingSelection": ["legitimo@banco.com", "segur1dad@banc0.com"],
-    "answerPhishingSelection": ["segur1dad@banc0.com"],
-    "phishingContext": "Contexto del phishing",
-    "leftItems": ["Concepto A", "Concepto B"],
-    "rightItems": ["Definición A", "Definición B"],
-    "pairs": [
-      {"left": "Concepto A", "right": "Definición B"},
-      {"left": "Concepto B", "right": "Definición A"}
-    ],
-    "hint": "Una pista opcional"
+    "typeExercise": "${type}",${typeSpecificFields}    "hint": "Una pista opcional"
   }
 ]`;
 
@@ -865,30 +889,43 @@ REGLAS CRÍTICAS:
 - TIPO de ejercicio que DEBES generar: "${type}"
 - DIFICULTAD requerida: "${payload.difficulty}"
 - DEBES generar EXACTAMENTE 1 ejercicio de este tipo específico dentro del array.
-- TODOS los campos deben existir en el JSON, rellena con arrays vacíos [] o strings vacíos "" los campos que no apliquen a este tipo de ejercicio.
+- TODOS los campos solicitados en el esquema JSON deben completarse correctamente y con los datos requeridos.
 - Las opciones/elementos del tipo solicitado NUNCA deben estar vacíos.
+- IMPORTANTE: Si es match_pairs, DEBES COMPLETAR OBLIGATORIAMENTE el string "answerMatchPairsString" con el formato "Clave|Valor, Clave|Valor". ¡PROHIBIDO dejarlo vacío!
 
-Responde SIEMPRE en formato JSON con un array de ejercicios. Ejemplo de estructura:
+Responde SIEMPRE en formato JSON estricto cumpliendo el esquema proporcionado. Ejemplo visual representativo de lo esperado:
 ${jsonExample}`;
   }
 
   // ─── Mapea la respuesta de Gemini a la estructura completa esperada por el frontend ──
   private normalizeExercise(raw: any, type: string, difficulty: string): any {
-    const base = {
+    const parsedPairs: { left: string; right: string }[] = [];
+    if (raw.answerMatchPairsString) {
+      const parts = String(raw.answerMatchPairsString).split(',');
+      for (const p of parts) {
+        const sides = p.split('|');
+        if (sides.length === 2 && sides[0] && sides[1]) {
+          parsedPairs.push({ left: sides[0].trim(), right: sides[1].trim() });
+        }
+      }
+    }
+
+    const base: any = {
       id: this.generateUUID(),
-      statement: raw.statement || 'Sin enunciado',
-      difficulty: raw.difficulty || difficulty,
-      typeExercise: raw.typeExercise || type,
-      code: raw.code || '',
+      statement: raw.statement || '',
+      difficulty: difficulty || raw.difficulty || 'Medio',
+      typeExercise: type || raw.typeExercise || '',
+      code: '', // <- ESTO EVITA ERROR 500
       hint: raw.hint || '',
-      // Selección
+      // Selections
+      _RAW_GEMINI: JSON.stringify(raw), // TEMPORAL DEBUG
       optionSelectOptions: raw.optionSelectOptions || [],
       answerSelectCorrect: raw.answerSelectCorrect || '',
       answerSelectsCorrect: raw.answerSelectsCorrect || [],
-      // Ordenamiento vertical
+      // Vertical
       optionsVerticalOrdering: raw.optionsVerticalOrdering || [],
       answerVerticalOrdering: raw.answerVerticalOrdering || [],
-      // Ordenamiento horizontal
+      // Horizontal
       optionsHorizontalOrdering: raw.optionsHorizontalOrdering || [],
       answerHorizontalOrdering: raw.answerHorizontalOrdering || [],
       // Phishing
@@ -897,9 +934,9 @@ ${jsonExample}`;
       phishingContext: raw.phishingContext || '',
       phishingImageUrl: raw.phishingImageUrl || '',
       // Match pairs
-      leftItems: raw.leftItems || [],
-      rightItems: raw.rightItems || [],
-      pairs: raw.pairs || [],
+      leftItems: raw.optionsMatchPairsLeft || [],
+      rightItems: raw.optionsMatchPairsRight || [],
+      pairs: parsedPairs.length > 0 ? parsedPairs : (raw.answerMatchPairs || []),
       // Código
       optionOrderFragmentCode: raw.optionOrderFragmentCode || [],
       answerOrderFragmentCode: raw.answerOrderFragmentCode || [],
@@ -922,35 +959,43 @@ ${jsonExample}`;
   ): Promise<any> {
     const prompt = this.buildPromptForType(type, payload);
 
-    const exerciseSchema = z.object({
+    let schemaShape: any = {
       statement: z.string().describe('Enunciado claro y preciso del ejercicio'),
       difficulty: z.string().describe('Fácil, Medio o Difícil'),
-      typeExercise: z.string().describe('Exactamente el tipo solicitado, ej: selection_single'),
+      typeExercise: z.string().describe('Exactamente el tipo solicitado, ej: ' + type),
       hint: z.string().optional().describe('Una pista opcional'),
+    };
 
-      optionSelectOptions: z.array(z.string()).optional().describe('Opciones de selección simple/múltiple'),
-      answerSelectCorrect: z.string().optional().describe('Respuesta correcta para selección simple'),
-      answerSelectsCorrect: z.array(z.string()).optional().describe('Respuestas correctas para selección múltiple'),
+    switch (type) {
+      case 'selection_single':
+        schemaShape.optionSelectOptions = z.array(z.string()).describe('Opciones de selección simple');
+        schemaShape.answerSelectCorrect = z.string().describe('Respuesta correcta exacta para selección simple');
+        break;
+      case 'selection_multiple':
+        schemaShape.optionSelectOptions = z.array(z.string()).describe('Opciones de selección múltiple');
+        schemaShape.answerSelectsCorrect = z.array(z.string()).describe('Respuestas correctas para selección múltiple');
+        break;
+      case 'vertical_ordering':
+        schemaShape.optionsVerticalOrdering = z.array(z.string()).describe('Elementos a ordenar verticalmente desordenados');
+        schemaShape.answerVerticalOrdering = z.array(z.string()).describe('Los mismos elementos en el orden correcto');
+        break;
+      case 'horizontal_ordering':
+        schemaShape.optionsHorizontalOrdering = z.array(z.string()).describe('Elementos a ordenar horizontalmente desordenados');
+        schemaShape.answerHorizontalOrdering = z.array(z.string()).describe('Los mismos elementos en el orden correcto');
+        break;
+      case 'phishing_selection_multiple':
+        schemaShape.optionsPhishingSelection = z.array(z.string()).describe('Correos o URLs realistas como opciones');
+        schemaShape.answerPhishingSelection = z.array(z.string()).describe('Correos o URLs de las opciones que SI son phishing');
+        schemaShape.phishingContext = z.string().optional().describe('Contexto del escenario de phishing');
+        break;
+      case 'match_pairs':
+        schemaShape.optionsMatchPairsLeft = z.array(z.string()).describe('Conceptos de la izquierda');
+        schemaShape.optionsMatchPairsRight = z.array(z.string()).describe('Definiciones a la derecha desordenadas');
+        schemaShape.answerMatchPairsString = z.string().describe('Solución en formato exacto "A|B, C|D, E|F" (Concepto A|Definición A, Concepto B|Definición B, etc.)');
+        break;
+    }
 
-      optionsVerticalOrdering: z.array(z.string()).optional().describe('Elementos a ordenar verticalmente'),
-      answerVerticalOrdering: z.array(z.string()).optional().describe('Orden correcto vertical'),
-
-      optionsHorizontalOrdering: z.array(z.string()).optional().describe('Elementos a ordenar horizontalmente'),
-      answerHorizontalOrdering: z.array(z.string()).optional().describe('Orden correcto horizontal'),
-
-      optionsPhishingSelection: z.array(z.string()).optional().describe('Correos o URLs realistas para evaluar phishing'),
-      answerPhishingSelection: z.array(z.string()).optional().describe('Correos o URLs que son efectivamente phishing'),
-      phishingContext: z.string().optional().describe('Contexto del escenario de phishing'),
-
-      leftItems: z.array(z.string()).optional().describe('Conceptos de la izquierda (match_pairs)'),
-      rightItems: z.array(z.string()).optional().describe('Definiciones a la derecha desordenadas (match_pairs)'),
-      pairs: z.array(
-        z.object({
-          left: z.string(),
-          right: z.string()
-        })
-      ).optional().describe('Pares correctos mapeados (match_pairs)')
-    });
+    const exerciseSchema = z.object(schemaShape);
 
     const arraySchema = z.array(exerciseSchema);
 
@@ -964,6 +1009,8 @@ ${jsonExample}`;
           responseJsonSchema: zodToJsonSchema(arraySchema as any),
         },
       });
+
+      console.log(`[AI] RAW response for ${type}:`, result.text);
 
       let raw = this.extractJson(result.text || '');
 

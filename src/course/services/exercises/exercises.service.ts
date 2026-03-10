@@ -90,7 +90,6 @@ export class ExercisesService {
       return {
         id: e.id,
         statement: e.statement,
-        code: e.code,
         typeExercise: e.typeExercise,
         approach:
           e.typeExercise === 'selection_single' ||
@@ -123,7 +122,6 @@ export class ExercisesService {
       id: exercise.id,
       activityId: exercise.activity.id,
       statement: exercise.statement,
-      code: exercise.code,
       hind: exercise.hind,
       typeExercise: exercise.typeExercise,
       difficulty: exercise.difficulty,

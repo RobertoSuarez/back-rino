@@ -24,10 +24,6 @@ export class CreateExercise {
   @ApiProperty()
   statement: string;
 
-  @Expose()
-  @IsString()
-  code: string;
-
   @IsString({ message: 'La dificultad debe ser un string' })
   @IsEnum(['Fácil', 'Medio', 'Difícil'])
   @ApiProperty()

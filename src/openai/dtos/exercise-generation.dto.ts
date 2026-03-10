@@ -100,9 +100,6 @@ export class GeneratedExerciseDto {
   @ApiProperty({ description: 'Respuesta para encontrar errores (si aplica)', required: false })
   answerFindError?: string;
 
-  @ApiProperty({ description: 'Código para ejercicios de código (si aplica)', required: false })
-  code?: string;
-
   @ApiProperty({ description: 'Pista para resolver el ejercicio (si aplica)', required: false })
   hint?: string;
 

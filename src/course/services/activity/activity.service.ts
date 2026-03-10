@@ -123,7 +123,6 @@ export class ActivityService {
         return {
           id: e.id,
           statement: e.statement,
-          code: e.code,
           typeExercise: e.typeExercise,
           approach:
             e.typeExercise === 'selection_single' ||

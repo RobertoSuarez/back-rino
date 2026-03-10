@@ -17,9 +17,6 @@ export class Exercise extends BaseTable {
   @Column()
   statement: string;
 
-  @Column({ default: '' })
-  code: string;
-
   @Column()
   hind: string;
 
