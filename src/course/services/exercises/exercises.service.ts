@@ -492,33 +492,39 @@ export class ExercisesService {
         break;
 
       case 'vertical_ordering':
+        result = await this.geminiService.getFeedbackExerciseVerticalOrdering(
+          exercise.statement,
+          exercise.answerVerticalOrdering,
+          answer.answerVerticalOrdering
+        );
         if (
           JSON.stringify(answer.answerVerticalOrdering) ===
           JSON.stringify(exercise.answerVerticalOrdering)
         ) {
           result.qualification = 10;
-          result.feedback = '¡Excelente! Has ordenado correctamente los elementos.';
         } else {
           result.qualification = 0;
-          result.feedback = 'El orden de los elementos no es correcto. Revisa la lógica y vuelve a intentarlo.';
         }
         break;
 
       case 'horizontal_ordering':
+        result = await this.geminiService.getFeedbackExerciseHorizontalOrdering(
+          exercise.statement,
+          exercise.answerHorizontalOrdering,
+          answer.answerHorizontalOrdering
+        );
         if (
           JSON.stringify(answer.answerHorizontalOrdering) ===
           JSON.stringify(exercise.answerHorizontalOrdering)
         ) {
           result.qualification = 10;
-          result.feedback = '¡Correcto! Has ordenado la secuencia horizontalmente de forma adecuada.';
         } else {
           result.qualification = 0;
-          result.feedback = 'El orden horizontal no es correcto. Verifica la secuencia.';
         }
         break;
 
       case 'phishing_selection_multiple':
-        // Calcular aciertos y errores
+        // Calcular aciertos y errores para enviar al prompt
         const correctPhishing = exercise.answerPhishingSelection.filter(
           (correct) => answer.answerPhishingSelection.includes(correct),
         );
@@ -533,16 +539,16 @@ export class ExercisesService {
         // Calcular calificación
         let qualPhishing = (10 / totalCorrectPhishing) * countCorrectPhishing - countIncorrectPhishing; // Penalizar errores
         if (qualPhishing < 0) qualPhishing = 0;
+
+        const { feedback: phishingFeedback } = await this.geminiService.getFeedbackExercisePhishingSelection(
+          exercise.statement,
+          exercise.phishingContext || null,
+          exercise.answerPhishingSelection,
+          answer.answerPhishingSelection
+        );
         
         result.qualification = Math.round(qualPhishing * 100) / 100;
-
-        if (result.qualification >= 7) {
-          result.feedback = '¡Muy bien! Has identificado correctamente las amenazas de phishing.';
-        } else if (result.qualification > 0) {
-          result.feedback = 'Has identificado algunas amenazas, pero te faltaron otras o seleccionaste elementos incorrectos.';
-        } else {
-          result.feedback = 'No has identificado correctamente las amenazas de phishing. Revisa el material de estudio.';
-        }
+        result.feedback = phishingFeedback;
         break;
 
       case 'match_pairs':
@@ -553,7 +559,6 @@ export class ExercisesService {
         answer.answerMatchPairs.forEach(p => userPairsMap.set(p.left, p.right));
 
         // Verificar contra los pares correctos definidos en el ejercicio
-        // Nota: exercise.answerMatchPairs tiene la estructura [{left: 'A', right: '1'}, ...]
         exercise.answerMatchPairs.forEach(correctPair => {
           if (userPairsMap.get(correctPair.left) === correctPair.right) {
             correctPairsCount++;
@@ -565,13 +570,13 @@ export class ExercisesService {
         // Calcular calificación
         result.qualification = Math.round((correctPairsCount / totalPairs) * 1000) / 100; // Escala de 0 a 10
 
-        if (result.qualification === 10) {
-          result.feedback = '¡Perfecto! Has emparejado todos los conceptos correctamente.';
-        } else if (result.qualification >= 5) {
-          result.feedback = `Has emparejado correctamente ${correctPairsCount} de ${totalPairs} conceptos.`;
-        } else {
-          result.feedback = 'La mayoría de los emparejamientos son incorrectos. Inténtalo de nuevo.';
-        }
+        const { feedback: matchPairsFeedback } = await this.geminiService.getFeedbackExerciseMatchPairs(
+          exercise.statement,
+          JSON.stringify(exercise.answerMatchPairs),
+          JSON.stringify(answer.answerMatchPairs)
+        );
+
+        result.feedback = matchPairsFeedback;
         break;
     }
 

@@ -612,6 +612,149 @@ Responde en formato JSON con la siguiente estructura:
   }
 
   /**
+   * Genera feedback para ejercicio de ordenar verticalmente
+   * @param statement Enunciado del ejercicio
+   * @param answerCorrect Orden correcto
+   * @param answerUser Orden del usuario
+   * @returns Feedback con calificación
+   */
+  async getFeedbackExerciseVerticalOrdering(
+    statement: string,
+    answerCorrect: string[],
+    answerUser: string[],
+  ): Promise<FeedbackExerciseDto> {
+    const prompt = `Eres Amauta, un profesor de ciberseguridad que proporciona retroalimentación educativa a estudiantes de 12-14 años en Cyber Imperium.
+Proporciona retroalimentación educativa para un ejercicio donde debían ordenar elementos verticalmente según su nivel de importancia o paso lógico.
+
+PREGUNTA: ${statement}
+ORDEN CORRECTO: ${answerCorrect.join('\\n')}
+ORDEN DEL USUARIO: ${answerUser.join('\\n')}
+
+INSTRUCCIONES:
+- Proporciona retroalimentación constructiva sobre el orden de los elementos
+- Explica por qué el orden correcto es importante para la seguridad o el concepto tratado
+- Si hay errores, ayuda al estudiante a entender la lógica jerárquica o secuencial
+- Sé motivador y educativo
+- Usa emojis relevantes
+
+Responde en formato JSON con la siguiente estructura:
+{
+  "qualification": [número del 0 al 10],
+  "feedback": "[tu retroalimentación aquí]"
+}`;
+
+    return this.getFeedbackExerciseGeneric(prompt);
+  }
+
+  /**
+   * Genera feedback para ejercicio de ordenar horizontalmente
+   * @param statement Enunciado del ejercicio
+   * @param answerCorrect Secuencia correcta
+   * @param answerUser Secuencia del usuario
+   * @returns Feedback con calificación
+   */
+  async getFeedbackExerciseHorizontalOrdering(
+    statement: string,
+    answerCorrect: string[],
+    answerUser: string[],
+  ): Promise<FeedbackExerciseDto> {
+    const prompt = `Eres Amauta, un profesor de ciberseguridad que proporciona retroalimentación educativa a estudiantes de 12-14 años en Cyber Imperium.
+Proporciona retroalimentación educativa para un ejercicio donde debían ordenar una secuencia lógica de pasos o conceptos de izquierda a derecha.
+
+PREGUNTA: ${statement}
+SECUENCIA CORRECTA: ${answerCorrect.join(' -> ')}
+SECUENCIA DEL USUARIO: ${answerUser.join(' -> ')}
+
+INSTRUCCIONES:
+- Proporciona retroalimentación constructiva sobre la secuencia ordenada
+- Explica por qué ese flujo paso a paso es vital para la ciberseguridad
+- Si hay errores, ayuda al estudiante a entender por qué un paso va antes o después
+- Sé motivador y educativo
+- Usa emojis relevantes
+
+Responde en formato JSON con la siguiente estructura:
+{
+  "qualification": [número del 0 al 10],
+  "feedback": "[tu retroalimentación aquí]"
+}`;
+
+    return this.getFeedbackExerciseGeneric(prompt);
+  }
+
+  /**
+   * Genera feedback para ejercicio de identificar phishing (selección múltiple)
+   * @param statement Enunciado del ejercicio
+   * @param context Contexto (opcional) del correo/mensaje
+   * @param answerCorrect Opciones correctas que son phishing
+   * @param answerUser Opciones seleccionadas por el usuario
+   * @returns Feedback con calificación
+   */
+  async getFeedbackExercisePhishingSelection(
+    statement: string,
+    context: string,
+    answerCorrect: string[],
+    answerUser: string[],
+  ): Promise<FeedbackExerciseDto> {
+    const prompt = `Eres Amauta, un profesor de ciberseguridad que proporciona retroalimentación educativa a estudiantes de 12-14 años en Cyber Imperium.
+Proporciona retroalimentación educativa para un ejercicio de identificar indicadores de phishing en un correo, mensaje incrustado o escenario.
+
+PREGUNTA: ${statement}
+CONTEXTO DE PHISHING (si lo hay): ${context || 'N/A'}
+INDICADORES REALES DE RIESGO: ${answerCorrect.join(', ')}
+SELECCIONES DEL USUARIO: ${answerUser.join(', ')}
+
+INSTRUCCIONES:
+- Menciona qué señales de alerta de phishing identificaron correctamente y cuáles pasaron por alto o seleccionaron erróneamente
+- Explica por qué cada indicador real es una táctica usada por ciberdelincuentes
+- Proporciona retroalimentación constructiva para ayudarles a estar más alertas a futuro
+- Sé motivador y educativo
+- Usa emojis relevantes (🎣, 🚨, etc.)
+
+Responde en formato JSON con la siguiente estructura:
+{
+  "qualification": [número del 0 al 10 calculado basado en precisión],
+  "feedback": "[tu retroalimentación aquí]"
+}`;
+
+    return this.getFeedbackExerciseGeneric(prompt);
+  }
+
+  /**
+   * Genera feedback para ejercicio de emparejar conceptos (Match Pairs)
+   * @param statement Enunciado del ejercicio
+   * @param answerCorrect Pares correctos (JSON stringificado para prompt)
+   * @param answerUser Pares del usuario (JSON stringificado para prompt)
+   * @returns Feedback con calificación
+   */
+  async getFeedbackExerciseMatchPairs(
+    statement: string,
+    answerCorrect: string,
+    answerUser: string,
+  ): Promise<FeedbackExerciseDto> {
+    const prompt = `Eres Amauta, un profesor de ciberseguridad que proporciona retroalimentación educativa a estudiantes de 12-14 años en Cyber Imperium.
+Proporciona retroalimentación educativa para un ejercicio en el que debían relacionar términos de seguridad con sus definiciones o parejas correctas.
+
+PREGUNTA: ${statement}
+EMPAREJAMIENTO CORRECTO: ${answerCorrect}
+EMPAREJAMIENTO DEL USUARIO: ${answerUser}
+
+INSTRUCCIONES:
+- Proporciona una explicación clara de cuáles parejas fueron correctas y cuáles erradas
+- Refuerza o aclara brevemente el concepto de aquellos emparejamientos que estuvieron mal
+- Si emparejaron todo perfecto, refuérzales lo genial que es que dominen esos conceptos
+- Sé motivador y educativo
+- Usa emojis relevantes
+
+Responde en formato JSON con la siguiente estructura:
+{
+  "qualification": [número del 0 al 10 basado en cuántos pares acertaron],
+  "feedback": "[tu retroalimentación aquí]"
+}`;
+
+    return this.getFeedbackExerciseGeneric(prompt);
+  }
+
+  /**
    * Método genérico para generar feedback de ejercicios
    * @param prompt Prompt para la generación
    * @returns Feedback con calificación
