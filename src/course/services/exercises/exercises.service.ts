@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { plainToClass } from 'class-transformer';
 import {
@@ -10,6 +10,7 @@ import {
 } from '../../../course/dtos/exercises.dtos';
 import { Activity } from '../../../database/entities/activity.entity';
 import { Exercise } from '../../../database/entities/exercise.entity';
+import { User } from '../../../database/entities/user.entity';
 import { Repository } from 'typeorm';
 import { GeminiService } from '../../../openai/services/gemini/gemini.service';
 import { DateTime } from 'luxon';
@@ -21,6 +22,7 @@ export class ExercisesService {
   constructor(
     @InjectRepository(Exercise) private exerciseRepo: Repository<Exercise>,
     @InjectRepository(Activity) private activityRepo: Repository<Activity>,
+    @InjectRepository(User) private userRepo: Repository<User>,
     private geminiService: GeminiService,
     private transactionHelper: TransactionHelper,
   ) {}
@@ -351,6 +353,17 @@ export class ExercisesService {
     if (!exercise) {
       throw new Error('Exercise not found');
     }
+
+    // Validación de cantidad de Tumis
+    const user = await this.userRepo.findOneBy({ id: answer.userId });
+    if (!user) {
+      throw new BadRequestException('Usuario no encontrado');
+    }
+
+    if (user.tumis <= 0) {
+      throw new BadRequestException('No tienes corazones (tumis) suficientes para responder este ejercicio.');
+    }
+
     let result: FeedbackExerciseDto = {
       qualification: 0,
       feedback: '',

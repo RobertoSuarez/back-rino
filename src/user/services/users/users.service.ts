@@ -361,6 +361,12 @@ export class UsersService {
       user.approved = false;
     } else {
       user.approved = true;
+      // Bonificación de bienvenida para estudiantes nuevos
+      if (user.typeUser === 'student') {
+        user.tumis = 5;
+        user.mullu = 100;
+        user.yachay = 0;
+      }
     }
 
     //TODO: Encriptar la contraseña.
