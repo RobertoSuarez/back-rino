@@ -222,11 +222,13 @@ export class UsersService {
   async approveUser(id: number) {
     const user = await this.findById(id);
     user.approved = true;
+    user.isVerified = true;
     await this._userRepo.save(user);
     
     return {
       id: user.id,
       approved: user.approved,
+      isVerified: user.isVerified,
     };
   }
 
