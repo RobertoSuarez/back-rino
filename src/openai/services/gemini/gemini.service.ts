@@ -23,8 +23,8 @@ export class GeminiService {
     'asesinar', 'matar', 'golpear', 'herir', 'atacar', 'violencia', 'pelear',
     // Contenido sexual
     'pichola', 'pene', 'verga', 'polla', 'sexo', 'pornografía', 'desnudo', 'sexual',
-    // Acoso y abuso
-    'violar', 'abusar', 'acoso', 'hostigar', 'intimidar', 'amenaza',
+    // Acoso y abuso (Solo términos explícitamente violentos o sexuales)
+    'violar', 'abusar',
     // Drogas y sustancias
     'droga', 'cocaína', 'heroína', 'marihuana', 'meth', 'fentanilo',
     // Otros inapropiados
@@ -94,9 +94,27 @@ export class GeminiService {
     
     const lowerContent = content.toLowerCase();
     
+    // Si el contenido menciona prevención, protección o defensa, ser más permisivo
+    const isPreventiveContext = 
+      lowerContent.includes('prevención') || 
+      lowerContent.includes('protección') || 
+      lowerContent.includes('defender') ||
+      lowerContent.includes('defensa') ||
+      lowerContent.includes('seguridad') ||
+      lowerContent.includes('concientización') ||
+      lowerContent.includes('educación');
+    
     // Verificar palabras clave inapropiadas
     for (const keyword of this.inappropriateKeywords) {
       if (lowerContent.includes(keyword)) {
+        // En contexto preventivo/educativo, permitimos términos que de otro modo serían bloqueados
+        if (isPreventiveContext) {
+          const allowedInContext = ['acoso', 'pornografía', 'abuso', 'violencia', 'sexo', 'sexual', 'droga', 'ataque'];
+          if (allowedInContext.some(k => keyword.includes(k) || k.includes(keyword))) {
+            continue; 
+          }
+        }
+
         this.logger.warn(`Contenido inapropiado detectado: "${keyword}"`);
         return true;
       }
@@ -115,18 +133,20 @@ export class GeminiService {
     if (this.isInappropriateContent(title)) {
       throw new Error('No es posible generar contenido con ese título. Por favor, utiliza un título apropiado para un curso de ciberseguridad.');
     }
-    const prompt = `Eres un experto en educación de ciberseguridad para niños y adolescentes. 
+    const prompt = `Eres un experto en educación de ciberseguridad para niños y adolescentes (12-14 años). 
 Genera una descripción detallada y atractiva para un curso de ciberseguridad titulado "${title}" en la plataforma Cyber Imperium.
 
+OBJETIVO: El curso tiene un enfoque PREVENTIVO y EDUCATIVO. Si el título trata temas sensibles (como acoso, riesgos en línea o protección personal), la descripción debe enfocarse en el empoderamiento, la prevención y las estrategias de seguridad, evitando lenguaje gráfico o alarmista.
+
 INSTRUCCIONES:
-1. La descripción debe ser un párrafo único y cautivador
-2. Destaca los beneficios prácticos del curso para protegerse en línea
-3. Menciona que los estudiantes aprenderán sobre seguridad digital y protección personal
-4. Usa un tono amigable, motivador y accesible para estudiantes de 12-14 años
-5. Incluye referencias a conceptos de seguridad como protección, privacidad, conciencia digital
-6. NO menciones explícitamente la edad ni el nivel educativo
-7. Haz que suene emocionante y relevante para su vida digital
-8. Máximo 150 palabras`;
+1. La descripción debe ser un párrafo único y cautivador.
+2. Destaca los beneficios prácticos del curso para protegerse en línea.
+3. Menciona que los estudiantes aprenderán sobre seguridad digital y protección personal.
+4. Usa un tono amigable, motivador y accesible para estudiantes de 12-14 años.
+5. Incluye referencias a conceptos de seguridad como protección, privacidad, conciencia digital.
+6. NO menciones explícitamente contenido sexual o violento de forma gráfica; úsalo solo como categoría de prevención si es necesario para el contexto del título.
+7. Haz que suene emocionante y relevante para su vida digital.
+8. Máximo 150 palabras.`;
 
     return this.generateContent(prompt);
   }
@@ -228,9 +248,10 @@ INSTRUCCIONES IMPORTANTES:
       throw new Error('❌ No es posible generar contenido con esa solicitud. Por favor, utiliza un prompt apropiado relacionado con ciberseguridad y seguridad digital. Recuerda que Cyber Imperium es una plataforma educativa para estudiantes de 12-14 años.');
     }
 
-    const theoryPrompt = `Eres Amauta, un profesor de ciberseguridad creativo y entusiasta que crea contenido educativo para estudiantes de 12-14 años en Cyber Imperium.
-Te inspiras en la sabiduría de los chasquis incas, los mensajeros que transmitían información de forma segura en el imperio inca.
-Ahora ayudas a los estudiantes a ser "chasquis digitales" - mensajeros seguros en el mundo digital.
+    const theoryPrompt = `Eres Amauta, un profesor de ciberseguridad creativo que crea contenido educativo para estudiantes de 12-14 años en Cyber Imperium.
+Tu misión es educar sobre PREVENCIÓN y SEGURIDAD DIGITAL. Siempre mantén un enfoque positivo, de empoderamiento y protección.
+
+Si el tema es sensible (como acoso, bullying, privacidad o riesgos graves), trátalo con seriedad pero de forma constructiva, enfocándote en CÓMO PROTEGERSE, a quién acudir y qué herramientas de seguridad utilizar. NUNCA generes contenido que promueva o explique cómo realizar actos dañinos.
 
 CONTEXTO:
 - Tema: ${temaTitle}
@@ -775,19 +796,19 @@ Responde en formato JSON con la siguiente estructura:
       const safetySettings = [
         {
           category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
         },
         {
           category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
         },
         {
           category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
         },
         {
           category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
         },
       ];
 
@@ -864,19 +885,19 @@ Responde en formato JSON con la siguiente estructura:
       const safetySettings = [
         {
           category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
         },
         {
           category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
         },
         {
           category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
         },
         {
           category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
         },
       ];
 
