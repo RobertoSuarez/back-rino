@@ -25,26 +25,40 @@ export class BulkCourseService {
       const user = await this.userRepo.findOneBy({ id: userId });
       if (!user) throw new Error('User not found');
 
-      // 1. Crear el Curso
-      const course = new Course();
+      // 1. Crear o Cargar el Curso
+      let course: Course;
+      if (data.id) {
+        course = await queryRunner.manager.findOne(Course, { where: { id: data.id } });
+        if (!course) throw new Error('Course to update not found');
+      } else {
+        course = new Course();
+        course.code = uuidv4().slice(0, 8);
+        const lastCourseCount = await queryRunner.manager.count(Course);
+        course.index = lastCourseCount;
+      }
+
       course.title = data.courseTitle;
       course.description = data.description;
       course.createdBy = user;
-      course.code = uuidv4().slice(0, 8);
       course.isPublic = data.isPublic || false;
       course.isDraft = data.isDraft !== undefined ? data.isDraft : true;
       course.urlLogo = data.urlLogo || null;
       
-      const lastCourseCount = await queryRunner.manager.count(Course);
-      course.index = lastCourseCount;
-
       const savedCourse = await queryRunner.manager.save(course);
 
-      // 2. Crear Capítulos
+      // 2. Procesar Capítulos
       if (data.chapters && data.chapters.length > 0) {
         for (let i = 0; i < data.chapters.length; i++) {
           const chapData = data.chapters[i];
-          const chapter = new Chapter();
+          let chapter: Chapter;
+          
+          if (chapData.id) {
+            chapter = await queryRunner.manager.findOne(Chapter, { where: { id: chapData.id } });
+            if (!chapter) throw new Error(`Chapter ${chapData.id} not found`);
+          } else {
+            chapter = new Chapter();
+          }
+
           chapter.title = chapData.title;
           chapter.shortDescription = chapData.description;
           chapter.course = savedCourse;
@@ -52,11 +66,19 @@ export class BulkCourseService {
           
           const savedChapter = await queryRunner.manager.save(chapter);
 
-          // 3. Crear Temas
+          // 3. Procesar Temas
           if (chapData.temas && chapData.temas.length > 0) {
             for (let j = 0; j < chapData.temas.length; j++) {
               const temaData = chapData.temas[j];
-              const tema = new Tema();
+              let tema: Tema;
+
+              if (temaData.id) {
+                tema = await queryRunner.manager.findOne(Tema, { where: { id: temaData.id } });
+                if (!tema) throw new Error(`Tema ${temaData.id} not found`);
+              } else {
+                tema = new Tema();
+              }
+
               tema.title = temaData.title;
               tema.shortDescription = temaData.shortDescription;
               tema.theory = temaData.theory || `<p>Contenido sugerido para ${temaData.title}</p>`;
@@ -65,40 +87,51 @@ export class BulkCourseService {
 
               const savedTema = await queryRunner.manager.save(tema);
 
-                  // 4. Crear Actividades
-                  if (chapData.temas[j].activities && chapData.temas[j].activities.length > 0) {
-                    for (let k = 0; k < chapData.temas[j].activities.length; k++) {
-                      let actData = chapData.temas[j].activities[k];
+              // 4. Procesar Actividades
+              if (temaData.activities && temaData.activities.length > 0) {
+                for (let k = 0; k < temaData.activities.length; k++) {
+                  let actData = temaData.activities[k];
+                  
+                  if (typeof actData === 'string') {
+                    actData = { title: actData, exercises: [] };
+                  }
+
+                  let activity: Activity;
+                  if (actData.id) {
+                    activity = await queryRunner.manager.findOne(Activity, { where: { id: actData.id } });
+                    if (!activity) throw new Error(`Activity ${actData.id} not found`);
+                  } else {
+                    activity = new Activity();
+                  }
+
+                  activity.title = actData.title || `Actividad ${k+1}`;
+                  activity.index = k;
+                  activity.tema = savedTema;
+                  
+                  const savedActivity = await queryRunner.manager.save(activity);
+                  
+                  // 5. Procesar Ejercicios
+                  if (actData.exercises && actData.exercises.length > 0) {
+                    for (let l = 0; l < actData.exercises.length; l++) {
+                      let exData = actData.exercises[l];
                       
-                      // Safeguard: AI sometimes returns a string for the activity
-                      if (typeof actData === 'string') {
-                        actData = { title: actData, exercises: [] };
+                      if (typeof exData === 'string') {
+                        exData = { statement: exData, typeExercise: 'selection_single' };
                       }
 
-                      const activity = new Activity();
-                      activity.title = actData.title || `Actividad ${k+1}`;
-                      activity.index = k;
-                      activity.tema = savedTema;
-                      
-                      const savedActivity = await queryRunner.manager.save(activity);
-                      
-                      // 5. Crear Ejercicios
-                      if (actData.exercises && actData.exercises.length > 0) {
-                        for (let l = 0; l < actData.exercises.length; l++) {
-                          let exData = actData.exercises[l];
-                          
-                          // Safeguard: Exercise as string
-                          if (typeof exData === 'string') {
-                            exData = { statement: exData, typeExercise: 'selection_single' };
-                          }
+                      let exercise: Exercise;
+                      if (exData.id) {
+                        exercise = await queryRunner.manager.findOne(Exercise, { where: { id: exData.id } });
+                        if (!exercise) throw new Error(`Exercise ${exData.id} not found`);
+                      } else {
+                        exercise = new Exercise();
+                      }
 
-                          const exercise = new Exercise();
-                          exercise.statement = exData.statement || `Completa el ejercicio ${l+1}`;
-                          exercise.typeExercise = exData.typeExercise || 'selection_single';
-                          exercise.difficulty = exData.difficulty || 'Fácil';
-                          exercise.hind = exData.hind || 'Analiza bien el mensaje';
+                      exercise.statement = exData.statement || `Completa el ejercicio ${l+1}`;
+                      exercise.typeExercise = exData.typeExercise || 'selection_single';
+                      exercise.difficulty = exData.difficulty || 'Fácil';
+                      exercise.hind = exData.hind || 'Analiza bien el mensaje';
                       
-                      // Mapeo simple de opciones/respuestas según tipo
                       if (exercise.typeExercise === 'selection_single') {
                         exercise.optionSelectOptions = exData.optionSelectOptions || [];
                         exercise.answerSelectCorrect = exData.answerSelectCorrect || '';
@@ -109,6 +142,9 @@ export class BulkCourseService {
                         exercise.optionsMatchPairsLeft = exData.optionsMatchPairsLeft || [];
                         exercise.optionsMatchPairsRight = exData.optionsMatchPairsRight || [];
                         exercise.answerMatchPairs = exData.answerMatchPairs || [];
+                      } else if (exercise.typeExercise === 'vertical_ordering') {
+                        exercise.optionsVerticalOrdering = exData.optionsVerticalOrdering || [];
+                        exercise.answerVerticalOrdering = exData.answerVerticalOrdering || [];
                       }
                       
                       exercise.activity = savedActivity;

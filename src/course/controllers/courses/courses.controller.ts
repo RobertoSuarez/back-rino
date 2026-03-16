@@ -120,6 +120,15 @@ export class CoursesController {
     };
   }
 
+  @Get(':id/full')
+  async getFullCourseHierarchy(@Param('id', ParseIntPipe) courseId: number) {
+    const data = await this.coursesService.findFullCourseHierarchy(courseId);
+    return {
+      message: 'Curso obtenido exitosamente',
+      data: data,
+    };
+  }
+
   @ApiOperation({ summary: 'Crea un curso y registra quien lo creo.' })
   @Post()
   async createCourse(@Request() req, @Body() payload: CreateCourseDto) {

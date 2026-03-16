@@ -410,4 +410,68 @@ export class CoursesService {
 
     return result;
   }
+
+  async findFullCourseHierarchy(courseId: number) {
+    const course = await this.courseRepo.findOne({
+      where: { id: courseId },
+      relations: {
+        createdBy: true,
+        chapters: {
+          temas: {
+            activities: {
+              exercises: true,
+            },
+          },
+        },
+      },
+      order: {
+        chapters: {
+          index: 'ASC',
+          temas: {
+            index: 'ASC',
+            activities: {
+              index: 'ASC',
+            },
+          },
+        },
+      },
+    });
+
+    if (!course) {
+      throw new Error('Course not found');
+    }
+
+    return {
+      id: course.id,
+      title: course.title,
+      description: course.description,
+      code: course.code,
+      urlLogo: course.urlLogo,
+      index: course.index,
+      isPublic: course.isPublic,
+      isDraft: course.isDraft,
+      createdBy: course.createdBy.firstName + ' ' + course.createdBy.lastName,
+      chapters: course.chapters.map((chapter) => ({
+        id: chapter.id,
+        title: chapter.title,
+        shortDescription: chapter.shortDescription,
+        index: chapter.index,
+        difficulty: chapter.difficulty,
+        temas: chapter.temas.map((tema) => ({
+          id: tema.id,
+          title: tema.title,
+          shortDescription: tema.shortDescription,
+          theory: tema.theory,
+          index: tema.index,
+          difficulty: tema.difficulty,
+          activities: tema.activities.map((activity) => ({
+            id: activity.id,
+            title: activity.title,
+            index: activity.index,
+            exercises: activity.exercises,
+          })),
+        })),
+      })),
+    };
+  }
 }
