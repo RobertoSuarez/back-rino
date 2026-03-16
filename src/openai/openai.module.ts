@@ -14,6 +14,8 @@ import { GeminiService } from './services/gemini/gemini.service';
 import { GeminiController } from './controllers/gemini/gemini.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { CourseAssistantService } from './services/course-assistant/course-assistant.service';
+import { CourseAssistantController } from './controllers/course-assistant/course-assistant.controller';
 
 @Module({
   providers: [
@@ -23,8 +25,9 @@ import { ConfigService } from '@nestjs/config';
     ChaptersGPTService,
     AudioService,
     GeminiService,
+    CourseAssistantService,
   ],
-  exports: [ChatCompletionService, ChaptersGPTService, GenerateImageService, GeminiService],
+  exports: [ChatCompletionService, ChaptersGPTService, GenerateImageService, GeminiService, CourseAssistantService],
   controllers: [
     ImagesController,
     ExercisesController,
@@ -32,6 +35,7 @@ import { ConfigService } from '@nestjs/config';
     QuestionsController,
     TemasController,
     GeminiController,
+    CourseAssistantController,
   ],
   imports: [
     ParametersModule,

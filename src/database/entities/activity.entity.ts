@@ -21,6 +21,9 @@ export class Activity extends BaseTable {
   @Column()
   title: string;
 
+  @Column({ default: 0 })
+  index: number;
+
   @OneToMany(() => Exercise, (e) => e.activity)
   exercises: Exercise[];
 

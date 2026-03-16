@@ -23,6 +23,7 @@ import {
   UpdateCourseDto,
 } from '../../../course/dtos/courses.dto';
 import { CoursesService } from '../../../course/services/courses/courses.service';
+import { BulkCourseService } from '../../../course/services/courses/bulk-course.service';
 import { GenerateImageService } from '../../../openai/services/generate-image/generate-image.service';
 import { AuthGuard } from '../../../user/guards/auth/auth.guard';
 import { DateTime } from 'luxon';
@@ -35,7 +36,15 @@ export class CoursesController {
   constructor(
     private coursesService: CoursesService,
     private _generateImageService: GenerateImageService,
+    private bulkCourseService: BulkCourseService,
   ) { }
+
+  @ApiOperation({ summary: 'Crea un curso completo con capítulos, temas y actividades en una sola transacción.' })
+  @Post('bulk')
+  async createFullCourse(@Request() req, @Body() payload: any) {
+    const { id } = req.user;
+    return await this.bulkCourseService.createFullCourse(id, payload);
+  }
 
   @ApiOperation({ summary: 'Obtiene todos los cursos que están públicos' })
   @Get()

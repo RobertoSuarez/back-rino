@@ -68,6 +68,9 @@ export class GeminiService {
         this.generativeAI = new GoogleGenerativeAI(apiKey);
         this.model = this.generativeAI.getGenerativeModel({
           model: this.defaultModel,
+          generationConfig: {
+            maxOutputTokens: 8192, // Aumentar límite para estructuras grandes
+          }
         });
       })();
     }
@@ -890,6 +893,187 @@ Responde en formato JSON con la siguiente estructura:
         error instanceof Error ? error.message : JSON.stringify(error);
       this.logger.error('Error al generar contenido con Gemini:', error);
       throw new Error(`Error al generar contenido: ${errorMessage}`);
+    }
+  }
+  /**
+   * Genera una estructura completa de curso (Capítulos, Temas, Actividades) basada en el título
+   * @param title Título del curso
+   * @param context Contexto adicional opcional
+   * @returns Estructura JSON del curso
+   */
+  async generateFullCourseStructure(title: string, context?: string): Promise<any> {
+    const prompt = `Eres un experto en diseño curricular de ciberseguridad para Cyber Imperium (estudiantes 12-14 años).
+Genera una estructura jerárquica COMPLETA para un curso titulado "${title}".
+
+${context ? `Contexto adicional: ${context}` : ''}
+
+INSTRUCCIONES:
+1. Genera de 3 a 5 Capítulos.
+2. Cada Capítulo debe tener de 2 a 3 Temas.
+3. Cada Tema debe tener de 1 a 2 Actividades.
+4. IMPORTANTÍSIMO: Cada Actividad DEBE ser un OBJETO que tenga un "title" (Nombre de la actividad) y un array "exercises" con al menos 2 ejercicios cada una.
+5. Los ejercicios deben ser variados: selection_single, match_pairs, selection_multiple.
+
+RESPONDE ÚNICAMENTE CON UN JSON VÁLIDO siguiendo esta estructura exacta:
+{
+  "courseTitle": "${title}",
+  "description": "Una descripción atractiva",
+  "chapters": [
+    {
+      "title": "Nombre del Capítulo",
+      "description": "...",
+      "temas": [
+        {
+          "title": "Nombre del Tema",
+          "shortDescription": "...",
+          "activities": [
+            {
+              "title": "Nombre de la Actividad",
+              "exercises": [
+                { "statement": "...", "typeExercise": "selection_single", "difficulty": "Fácil", "optionSelectOptions": ["A","B"], "answerSelectCorrect": "A", "hind": "..." },
+                { "statement": "...", "typeExercise": "selection_single", "difficulty": "Medio", "optionSelectOptions": ["X","Y"], "answerSelectCorrect": "X", "hind": "..." }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+No incluyas explicaciones ni markdown, solo el JSON puro.`;
+
+    const response = await this.generateContent(prompt);
+    try {
+      // 1. Encontrar el bloque JSON
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        let cleanedJson = jsonMatch[0]
+          .replace(/[\u0000-\u001F\u007F-\u009F]/g, "") // Eliminar caracteres de control
+          .trim();
+        
+        // 2. Eliminar comas finales que rompen JSON.parse
+        cleanedJson = cleanedJson.replace(/,\s*([\]\}])/g, "$1");
+        
+        return JSON.parse(cleanedJson);
+      }
+      
+      // Fallback
+      const textOnly = response.replace(/```json|```/g, '').trim();
+      const finalJson = textOnly.replace(/,\s*([\]\}])/g, "$1");
+      return JSON.parse(finalJson);
+    } catch (error) {
+      this.logger.error('Error al parsear estructura de curso:', error);
+      this.logger.error('Respuesta original de Gemini (posible truncamiento):', response);
+      
+      // Intento de reparación manual para JSON truncado
+      try {
+        const repaired = this.tryRepairJson(response);
+        if (repaired) {
+          this.logger.warn('JSON reparado parcialmente tras truncamiento.');
+          return repaired;
+        }
+      } catch (repairError) {
+        this.logger.error('No se pudo reparar el JSON truncado');
+      }
+
+      // 3. Estrategia de recuperación final: Estructura mínima funcional
+      return {
+        courseTitle: title,
+        description: "Estructura parcial (se alcanzó el límite de la IA)",
+        chapters: []
+      };
+    }
+  }
+
+  /**
+   * Sugiere 5 títulos creativos para un curso basado en un tema.
+   */
+  async suggestCourseTitles(topic: string): Promise<string[]> {
+    const prompt = `Eres un experto en marketing educativo. Sugiere 5 títulos breves, atractivos e impactantes para un curso sobre "${topic}". 
+    Dirigido a: Estudiantes de 12-14 años.
+    Responde ÚNICAMENTE con un array JSON de strings, ejemplo: ["Título 1", "Título 2", ...]`;
+
+    const response = await this.generateContent(prompt);
+    try {
+      const jsonMatch = response.match(/\[[\s\S]*\]/);
+      return JSON.parse(jsonMatch ? jsonMatch[0] : response);
+    } catch (e) {
+      this.logger.error('Error sugiriendo títulos:', e);
+      return [`Curso de ${topic}`, `${topic} para Jóvenes`, `Dominando ${topic}`];
+    }
+  }
+
+  /**
+   * Sugiere el siguiente capítulo lógico para un curso.
+   */
+  async suggestChapters(courseTitle: string, existingChapters: string[]): Promise<any[]> {
+    const prompt = `Eres un diseñador curricular. Para el curso "${courseTitle}", sugiere los SIGUIENTES 3 capítulos posibles que continúen la progresión lógica.
+    Capítulos ya existentes: ${existingChapters.join(', ') || 'Ninguno (este es el inicio)'}.
+    
+    Para cada sugerencia, proporciona:
+    - title: Un nombre creativo (evita "Capítulo 1", "Introducción", etc. Sé específico).
+    - description: Una descripción breve de lo que se aprenderá.
+    
+    Responde ÚNICAMENTE con un array JSON de objetos: [{"title": "...", "description": "..."}, ...]`;
+
+    const response = await this.generateContent(prompt);
+    try {
+      const jsonMatch = response.match(/\[[\s\S]*\]/);
+      return JSON.parse(jsonMatch ? jsonMatch[0] : response);
+    } catch (e) {
+      this.logger.error('Error sugiriendo capítulos:', e);
+      return [];
+    }
+  }
+
+  /**
+   * Intenta reparar un JSON truncado cerrando llaves y corchetes pendientes.
+   */
+  private tryRepairJson(json: string): any {
+    let text = json.trim();
+    const jsonMatch = text.match(/\{[\s\S]*/);
+    if (!jsonMatch) return null;
+    
+    text = jsonMatch[0];
+    
+    const stack: string[] = [];
+    let isString = false;
+    let escaped = false;
+
+    let i = 0;
+    while (i < text.length) {
+        const char = text[i];
+        if (char === '"' && !escaped) {
+            isString = !isString;
+        }
+        if (!isString) {
+            if (char === '{' || char === '[') {
+                stack.push(char);
+            } else if (char === '}' || char === ']') {
+                stack.pop();
+            }
+        }
+        escaped = char === '\\' && !escaped;
+        i++;
+    }
+
+    // Si terminó dentro de un string, cerrarlo
+    if (isString) text += '"';
+
+    // Cerrar el stack en orden inverso
+    while (stack.length > 0) {
+        const last = stack.pop();
+        if (last === '{') text += '}';
+        else if (last === '[') text += ']';
+    }
+
+    try {
+        // Limpieza final antes de parsear (quitar comas finales que rompen)
+        const cleaned = text.replace(/,\s*([\]\}])/g, "$1");
+        return JSON.parse(cleaned);
+    } catch (e) {
+        return null;
     }
   }
 }

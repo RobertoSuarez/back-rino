@@ -36,6 +36,9 @@ export class Course extends BaseTable {
   @Column({ default: false })
   isPublic: boolean;
 
+  @Column({ default: true })
+  isDraft: boolean;
+
   @OneToMany(() => Subscription, (subscription) => subscription.course)
   subscriptions: Subscription[];
 

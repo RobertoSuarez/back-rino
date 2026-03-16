@@ -118,4 +118,23 @@ export class GeminiController {
     );
     return { description };
   }
+  @Post('suggest-titles')
+  async suggestTitles(@Body() payload: { topic: string }) {
+    const titles = await this.geminiService.suggestCourseTitles(payload.topic);
+    return { titles };
+  }
+
+  @Post('suggest-chapters')
+  async suggestChapters(@Body() payload: { courseTitle: string, existingChapters: string[] }) {
+    const chapters = await this.geminiService.suggestChapters(payload.courseTitle, payload.existingChapters);
+    return { chapters };
+  }
+
+  @Post('generate-full-structure')
+  async generateFullStructure(@Body() payload: { title: string, context?: string }) {
+    return await this.geminiService.generateFullCourseStructure(
+      payload.title,
+      payload.context,
+    );
+  }
 }

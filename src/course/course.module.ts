@@ -27,6 +27,8 @@ import { OpenaiModule } from '../openai/openai.module';
 import { ActivityProgressUser } from '../database/entities/activityProgress.entity';
 import { GameTransactionsModule } from '../game-transactions/game-transactions.module';
 
+import { BulkCourseService } from './services/courses/bulk-course.service';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -66,6 +68,7 @@ import { GameTransactionsModule } from '../game-transactions/game-transactions.m
     SubscriptionsService,
     TemaService,
     ActivityService,
+    BulkCourseService,
   ],
   exports: [CoursesService],
 })
