@@ -148,6 +148,7 @@ export class BulkCourseService {
                       }
                       
                       exercise.activity = savedActivity;
+                      exercise.index = l;
                       await queryRunner.manager.save(exercise);
                     }
                   }

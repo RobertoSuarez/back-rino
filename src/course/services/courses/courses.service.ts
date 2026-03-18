@@ -431,6 +431,9 @@ export class CoursesService {
             index: 'ASC',
             activities: {
               index: 'ASC',
+              exercises: {
+                index: 'ASC',
+              },
             },
           },
         },

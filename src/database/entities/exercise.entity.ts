@@ -11,6 +11,9 @@ export class Exercise extends BaseTable {
   @ManyToOne(() => Activity, (a) => a.exercises)
   activity: Activity;
 
+  @Column({ default: 0 })
+  index: number;
+
   @Column({ default: 'Fácil' })
   difficulty: string;
 

@@ -53,6 +53,9 @@ export class ExercisesService {
       relations: {
         activity: true,
       },
+      order: {
+        index: 'ASC',
+      },
     });
 
     const result = exercises.map((e) => {
@@ -355,13 +358,17 @@ export class ExercisesService {
     }
 
     // Validación de cantidad de Tumis
-    const user = await this.userRepo.findOneBy({ id: answer.userId });
-    if (!user) {
-      throw new BadRequestException('Usuario no encontrado');
-    }
+    if (!answer.isPreview) {
+      const user = await this.userRepo.findOneBy({ id: answer.userId });
+      if (!user) {
+        throw new BadRequestException('Usuario no encontrado');
+      }
 
-    if (user.tumis <= 0) {
-      throw new BadRequestException('No tienes corazones (tumis) suficientes para responder este ejercicio.');
+      if (user.tumis <= 0) {
+        throw new BadRequestException(
+          'No tienes corazones (tumis) suficientes para responder este ejercicio.',
+        );
+      }
     }
 
     let result: FeedbackExerciseDto = {
@@ -593,8 +600,8 @@ export class ExercisesService {
         break;
     }
 
-    // Otorgar Yachay proporcional a la calificación obtenida (solo si calificación >= 7)
-    if (result.qualification >= 7) {
+    // Otorgar Yachay proporcional a la calificación obtenida (solo si calificación >= 7 y NO es preview)
+    if (result.qualification >= 7 && !answer.isPreview) {
       const yachayBase = this.calculateYachayReward(exercise.difficulty);
       // Calcular Yachay proporcional: (calificación / 10) * yachayBase
       const yachayReward = Math.round((result.qualification / 10) * yachayBase);

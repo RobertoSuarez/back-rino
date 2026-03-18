@@ -19,6 +19,11 @@ export class CreateExercise {
   activityId: number;
 
   @Expose()
+  @IsInt()
+  @ApiProperty({ required: false })
+  index?: number;
+
+  @Expose()
   @IsString()
   @IsNotEmpty()
   @ApiProperty()
@@ -185,6 +190,9 @@ export class CheckExerciseDto {
   @IsInt()
   @IsNotEmpty()
   userId: number;
+
+  @ApiProperty({ required: false })
+  isPreview?: boolean;
 
   // Respuestas de las diferentes preguntas.
 

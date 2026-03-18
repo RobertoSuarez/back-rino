@@ -108,7 +108,7 @@ export class ActivityService {
       .createQueryBuilder('activity')
       .leftJoinAndSelect('activity.exercises', 'exercises')
       .where('activity.id = :id', { id: activityId })
-      .orderBy('exercises.id', 'ASC')
+      .orderBy('exercises.index', 'ASC')
       .getOne();
 
     if (!activity) {
