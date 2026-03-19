@@ -345,10 +345,7 @@ export class ExercisesService {
     }
   }
 
-  async checkAnswer(
-    exerciseId: number,
-    answer: CheckExerciseDto,
-  ): Promise<FeedbackExerciseDto> {
+  private async getExerciseOrThrow(exerciseId: number): Promise<Exercise> {
     const exercise = await this.exerciseRepo.findOneBy({
       id: exerciseId,
     });
@@ -357,47 +354,59 @@ export class ExercisesService {
       throw new Error('Exercise not found');
     }
 
-    // Validación de cantidad de Tumis
-    if (!answer.isPreview) {
-      const user = await this.userRepo.findOneBy({ id: answer.userId });
-      if (!user) {
-        throw new BadRequestException('Usuario no encontrado');
-      }
+    return exercise;
+  }
 
-      if (user.tumis <= 0) {
-        throw new BadRequestException(
-          'No tienes corazones (tumis) suficientes para responder este ejercicio.',
-        );
-      }
+  private async validateAnswerAccess(answer: CheckExerciseDto): Promise<void> {
+    if (answer.isPreview) {
+      return;
     }
 
-    let result: FeedbackExerciseDto = {
+    const user = await this.userRepo.findOneBy({ id: answer.userId });
+    if (!user) {
+      throw new BadRequestException('Usuario no encontrado');
+    }
+
+    if (user.tumis <= 0) {
+      throw new BadRequestException(
+        'No tienes corazones (tumis) suficientes para responder este ejercicio.',
+      );
+    }
+  }
+
+  private createBaseResult(exercise: Exercise): FeedbackExerciseDto {
+    return {
       qualification: 0,
       feedback: '',
       yachayEarned: 0,
       difficulty: exercise.difficulty,
     };
+  }
+
+  private async evaluateAnswer(
+    exercise: Exercise,
+    answer: CheckExerciseDto,
+    includeAmautaFeedback: boolean,
+  ): Promise<FeedbackExerciseDto> {
+    const result = this.createBaseResult(exercise);
 
     switch (exercise.typeExercise) {
       case 'selection_single':
-        result =
-          await this.geminiService.getFeedbackExerciseSelectionSingle(
-            answer.answerSelect,
-            exercise.answerSelectCorrect,
-            exercise.statement,
-          );
-        if (answer.answerSelect === exercise.answerSelectCorrect) {
-          result.qualification = 10;
-          // result.feedback =
-          //   this.frasesPositivas[
-          //     Math.floor(Math.random() * this.frasesPositivas.length)
-          //   ];
-        } else {
-          result.qualification = 0;
+        if (includeAmautaFeedback) {
+          const { feedback } =
+            await this.geminiService.getFeedbackExerciseSelectionSingle(
+              answer.answerSelect,
+              exercise.answerSelectCorrect,
+              exercise.statement,
+            );
+          result.feedback = feedback;
         }
+
+        result.qualification =
+          answer.answerSelect === exercise.answerSelectCorrect ? 10 : 0;
         break;
+
       case 'selection_multiple':
-        // necesito obtener el numero de respuestas correctas.
         const correctAnswersUser = exercise.answerSelectsCorrect.filter(
           (answerCorrect) => answer.answerSelects.includes(answerCorrect),
         );
@@ -420,131 +429,116 @@ export class ExercisesService {
 
         result.qualification = Math.round(result.qualification * 100) / 100;
 
-        const { feedback } =
-          await this.geminiService.getFeedbackExerciseSelectionMultiple(
-            exercise.statement,
-            exercise.answerSelectsCorrect,
-            answer.answerSelects,
-          );
+        if (includeAmautaFeedback) {
+          const { feedback } =
+            await this.geminiService.getFeedbackExerciseSelectionMultiple(
+              exercise.statement,
+              exercise.answerSelectsCorrect,
+              answer.answerSelects,
+            );
 
-        result.feedback = feedback;
-
-        if (result.qualification > 7) {
-          // result.feedback =
-          //   this.frasesPositivas[
-          //     Math.floor(Math.random() * this.frasesPositivas.length)
-          //   ];
-        } else {
-          // result.qualification = 0;
-          // result.feedback = 'No has podido seleccionar ninguna opción correcta';
+          result.feedback = feedback;
         }
-
         break;
 
       case 'order_fragment_code':
-        result =
-          await this.geminiService.getFeedbackExerciseOrdenFragmentCode(
-            exercise.statement,
-            exercise.answerOrderFragmentCode,
-            answer.answerOrderFragmentCode,
-          );
-        if (
+        if (includeAmautaFeedback) {
+          const { feedback } =
+            await this.geminiService.getFeedbackExerciseOrdenFragmentCode(
+              exercise.statement,
+              exercise.answerOrderFragmentCode,
+              answer.answerOrderFragmentCode,
+            );
+          result.feedback = feedback;
+        }
+
+        result.qualification =
           JSON.stringify(answer.answerOrderFragmentCode) ===
           JSON.stringify(exercise.answerOrderFragmentCode)
-        ) {
-          result.qualification = 10;
-          // result.feedback =
-          //   this.frasesPositivas[
-          //     Math.floor(Math.random() * this.frasesPositivas.length)
-          //   ];
-        } else {
-          // result.qualification = 0;
-          // result.feedback = 'No es la respuesta correcta';
-        }
+            ? 10
+            : 0;
         break;
 
       case 'order_line_code':
-        result =
-          await this.geminiService.getFeedbackExerciseOrderLineCode(
-            exercise.statement,
-            exercise.answerOrderLineCode,
-            answer.answerOrderLineCode,
-          );
-        if (
+        if (includeAmautaFeedback) {
+          const { feedback } =
+            await this.geminiService.getFeedbackExerciseOrderLineCode(
+              exercise.statement,
+              exercise.answerOrderLineCode,
+              answer.answerOrderLineCode,
+            );
+          result.feedback = feedback;
+        }
+
+        result.qualification =
           JSON.stringify(answer.answerOrderLineCode) ===
           JSON.stringify(exercise.answerOrderLineCode)
-        ) {
-          result.qualification = 10;
-          // result.feedback =
-          //   this.frasesPositivas[
-          //     Math.floor(Math.random() * this.frasesPositivas.length)
-          //   ];
-        } else {
-          // result.qualification = 0;
-          // result.feedback = 'No es la respuesta correcta';
-        }
+            ? 10
+            : 0;
         break;
 
       case 'write_code':
-        result = await this.geminiService.getFeedbackExerciseWriteCode(
+        const writeCodeResult = await this.geminiService.getFeedbackExerciseWriteCode(
           exercise.statement,
           answer.answerWriteCode,
         );
-
+        result.qualification = writeCodeResult.qualification;
+        if (includeAmautaFeedback) {
+          result.feedback = writeCodeResult.feedback;
+        }
         break;
+
       case 'find_error_code':
-        const { feedback: f } =
-          await this.geminiService.getFeedbackExerciseFindError(
+        if (includeAmautaFeedback) {
+          const { feedback } = await this.geminiService.getFeedbackExerciseFindError(
             exercise.statement,
             exercise.answerFindError,
             answer.answerFindError,
           );
-        result.feedback = f;
-        if (answer.answerFindError === exercise.answerFindError) {
-          result.qualification = 10;
-          // result.feedback =
-          //   this.frasesPositivas[
-          //     Math.floor(Math.random() * this.frasesPositivas.length)
-          //   ];
-        } else {
-          result.qualification = 0;
+          result.feedback = feedback;
         }
+
+        result.qualification =
+          answer.answerFindError === exercise.answerFindError ? 10 : 0;
         break;
 
       case 'vertical_ordering':
-        result = await this.geminiService.getFeedbackExerciseVerticalOrdering(
-          exercise.statement,
-          exercise.answerVerticalOrdering,
-          answer.answerVerticalOrdering
-        );
-        if (
+        if (includeAmautaFeedback) {
+          const { feedback } =
+            await this.geminiService.getFeedbackExerciseVerticalOrdering(
+              exercise.statement,
+              exercise.answerVerticalOrdering,
+              answer.answerVerticalOrdering,
+            );
+          result.feedback = feedback;
+        }
+
+        result.qualification =
           JSON.stringify(answer.answerVerticalOrdering) ===
           JSON.stringify(exercise.answerVerticalOrdering)
-        ) {
-          result.qualification = 10;
-        } else {
-          result.qualification = 0;
-        }
+            ? 10
+            : 0;
         break;
 
       case 'horizontal_ordering':
-        result = await this.geminiService.getFeedbackExerciseHorizontalOrdering(
-          exercise.statement,
-          exercise.answerHorizontalOrdering,
-          answer.answerHorizontalOrdering
-        );
-        if (
+        if (includeAmautaFeedback) {
+          const { feedback } =
+            await this.geminiService.getFeedbackExerciseHorizontalOrdering(
+              exercise.statement,
+              exercise.answerHorizontalOrdering,
+              answer.answerHorizontalOrdering,
+            );
+          result.feedback = feedback;
+        }
+
+        result.qualification =
           JSON.stringify(answer.answerHorizontalOrdering) ===
           JSON.stringify(exercise.answerHorizontalOrdering)
-        ) {
-          result.qualification = 10;
-        } else {
-          result.qualification = 0;
-        }
+            ? 10
+            : 0;
         break;
 
       case 'phishing_selection_multiple':
-        // Calcular aciertos y errores para enviar al prompt
         const correctPhishing = exercise.answerPhishingSelection.filter(
           (correct) => answer.answerPhishingSelection.includes(correct),
         );
@@ -556,71 +550,120 @@ export class ExercisesService {
         const countIncorrectPhishing = incorrectPhishing.length;
         const totalCorrectPhishing = exercise.answerPhishingSelection.length;
 
-        // Calcular calificación
-        let qualPhishing = (10 / totalCorrectPhishing) * countCorrectPhishing - countIncorrectPhishing; // Penalizar errores
-        if (qualPhishing < 0) qualPhishing = 0;
+        let qualPhishing =
+          (10 / totalCorrectPhishing) * countCorrectPhishing -
+          countIncorrectPhishing;
+        if (qualPhishing < 0) {
+          qualPhishing = 0;
+        }
 
-        const { feedback: phishingFeedback } = await this.geminiService.getFeedbackExercisePhishingSelection(
-          exercise.statement,
-          exercise.phishingContext || null,
-          exercise.answerPhishingSelection,
-          answer.answerPhishingSelection
-        );
-        
         result.qualification = Math.round(qualPhishing * 100) / 100;
-        result.feedback = phishingFeedback;
+
+        if (includeAmautaFeedback) {
+          const { feedback } =
+            await this.geminiService.getFeedbackExercisePhishingSelection(
+              exercise.statement,
+              exercise.phishingContext || null,
+              exercise.answerPhishingSelection,
+              answer.answerPhishingSelection,
+            );
+
+          result.feedback = feedback;
+        }
         break;
 
       case 'match_pairs':
-        // Verificar pares
         let correctPairsCount = 0;
-        // Crear mapas para búsqueda rápida
         const userPairsMap = new Map();
-        answer.answerMatchPairs.forEach(p => userPairsMap.set(p.left, p.right));
+        answer.answerMatchPairs.forEach((pair) =>
+          userPairsMap.set(pair.left, pair.right),
+        );
 
-        // Verificar contra los pares correctos definidos en el ejercicio
-        exercise.answerMatchPairs.forEach(correctPair => {
+        exercise.answerMatchPairs.forEach((correctPair) => {
           if (userPairsMap.get(correctPair.left) === correctPair.right) {
             correctPairsCount++;
           }
         });
 
         const totalPairs = exercise.answerMatchPairs.length;
-        
-        // Calcular calificación
-        result.qualification = Math.round((correctPairsCount / totalPairs) * 1000) / 100; // Escala de 0 a 10
 
-        const { feedback: matchPairsFeedback } = await this.geminiService.getFeedbackExerciseMatchPairs(
-          exercise.statement,
-          JSON.stringify(exercise.answerMatchPairs),
-          JSON.stringify(answer.answerMatchPairs)
-        );
+        result.qualification =
+          Math.round((correctPairsCount / totalPairs) * 1000) / 100;
 
-        result.feedback = matchPairsFeedback;
+        if (includeAmautaFeedback) {
+          const { feedback } = await this.geminiService.getFeedbackExerciseMatchPairs(
+            exercise.statement,
+            JSON.stringify(exercise.answerMatchPairs),
+            JSON.stringify(answer.answerMatchPairs),
+          );
+
+          result.feedback = feedback;
+        }
         break;
     }
 
-    // Otorgar Yachay proporcional a la calificación obtenida (solo si calificación >= 7 y NO es preview)
-    if (result.qualification >= 7 && !answer.isPreview) {
-      const yachayBase = this.calculateYachayReward(exercise.difficulty);
-      // Calcular Yachay proporcional: (calificación / 10) * yachayBase
-      const yachayReward = Math.round((result.qualification / 10) * yachayBase);
-      result.yachayEarned = yachayReward;
+    return result;
+  }
 
-      try {
-        // Crear transacción de Yachay
-        await this.transactionHelper.rewardActivityCompletion(
-          answer.userId,
-          exerciseId,
-          yachayReward,
-          `Ejercicio completado con ${result.qualification}/10 (${exercise.difficulty})`,
-        );
-      } catch (error) {
-        // Si falla la transacción, no afecta el resultado del ejercicio
-        console.error('Error al otorgar Yachay:', error);
-      }
+  private async applyYachayReward(
+    result: FeedbackExerciseDto,
+    exercise: Exercise,
+    answer: CheckExerciseDto,
+    exerciseId: number,
+  ): Promise<void> {
+    if (result.qualification < 7 || answer.isPreview) {
+      return;
     }
 
+    const yachayBase = this.calculateYachayReward(exercise.difficulty);
+    const yachayReward = Math.round((result.qualification / 10) * yachayBase);
+    result.yachayEarned = yachayReward;
+
+    try {
+      await this.transactionHelper.rewardActivityCompletion(
+        answer.userId,
+        exerciseId,
+        yachayReward,
+        `Ejercicio completado con ${result.qualification}/10 (${exercise.difficulty})`,
+      );
+    } catch (error) {
+      console.error('Error al otorgar Yachay:', error);
+    }
+  }
+
+  async checkAnswer(
+    exerciseId: number,
+    answer: CheckExerciseDto,
+  ): Promise<FeedbackExerciseDto> {
+    const exercise = await this.getExerciseOrThrow(exerciseId);
+    await this.validateAnswerAccess(answer);
+    const result = await this.evaluateAnswer(exercise, answer, true);
+    await this.applyYachayReward(result, exercise, answer, exerciseId);
     return result;
+  }
+
+  async validateAnswer(
+    exerciseId: number,
+    answer: CheckExerciseDto,
+  ): Promise<FeedbackExerciseDto> {
+    const exercise = await this.getExerciseOrThrow(exerciseId);
+    await this.validateAnswerAccess(answer);
+    const result = await this.evaluateAnswer(exercise, answer, false);
+    await this.applyYachayReward(result, exercise, answer, exerciseId);
+    return result;
+  }
+
+  async getAmautaFeedback(
+    exerciseId: number,
+    answer: CheckExerciseDto,
+  ): Promise<FeedbackExerciseDto> {
+    const exercise = await this.getExerciseOrThrow(exerciseId);
+    const result = await this.evaluateAnswer(exercise, answer, true);
+
+    return {
+      qualification: result.qualification,
+      feedback: result.feedback,
+      difficulty: result.difficulty,
+    };
   }
 }

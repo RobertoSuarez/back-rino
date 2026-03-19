@@ -98,4 +98,20 @@ export class ExercisesController {
     const result = await this.exercisesService.checkAnswer(id, payload);
     return result;
   }
+
+  @Post(':id/validate')
+  async validateAnswer(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: CheckExerciseDto,
+  ) {
+    return await this.exercisesService.validateAnswer(id, payload);
+  }
+
+  @Post(':id/amauta-feedback')
+  async getAmautaFeedback(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: CheckExerciseDto,
+  ) {
+    return await this.exercisesService.getAmautaFeedback(id, payload);
+  }
 }
