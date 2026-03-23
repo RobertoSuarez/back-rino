@@ -27,7 +27,9 @@ export class BulkCourseService {
 
       // 1. Crear o Cargar el Curso
       let course: Course;
-      if (data.id) {
+      const isNewCourse = !data.id;
+      
+      if (!isNewCourse) {
         course = await queryRunner.manager.findOne(Course, { where: { id: data.id } });
         if (!course) throw new Error('Course to update not found');
       } else {
@@ -52,7 +54,7 @@ export class BulkCourseService {
           const chapData = data.chapters[i];
           let chapter: Chapter;
           
-          if (chapData.id) {
+          if (!isNewCourse && chapData.id) {
             chapter = await queryRunner.manager.findOne(Chapter, { where: { id: chapData.id } });
             if (!chapter) throw new Error(`Chapter ${chapData.id} not found`);
           } else {
@@ -72,7 +74,7 @@ export class BulkCourseService {
               const temaData = chapData.temas[j];
               let tema: Tema;
 
-              if (temaData.id) {
+              if (!isNewCourse && temaData.id) {
                 tema = await queryRunner.manager.findOne(Tema, { where: { id: temaData.id } });
                 if (!tema) throw new Error(`Tema ${temaData.id} not found`);
               } else {
@@ -97,7 +99,7 @@ export class BulkCourseService {
                   }
 
                   let activity: Activity;
-                  if (actData.id) {
+                  if (!isNewCourse && actData.id) {
                     activity = await queryRunner.manager.findOne(Activity, { where: { id: actData.id } });
                     if (!activity) throw new Error(`Activity ${actData.id} not found`);
                   } else {
@@ -120,7 +122,7 @@ export class BulkCourseService {
                       }
 
                       let exercise: Exercise;
-                      if (exData.id) {
+                      if (!isNewCourse && exData.id) {
                         exercise = await queryRunner.manager.findOne(Exercise, { where: { id: exData.id } });
                         if (!exercise) throw new Error(`Exercise ${exData.id} not found`);
                       } else {
