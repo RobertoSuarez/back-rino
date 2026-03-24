@@ -7,6 +7,7 @@ import {
   IsNotEmpty,
   IsNumber,
   IsString,
+  IsOptional,
 } from 'class-validator';
 import { DateTime } from 'luxon';
 import { formatDateFrontend } from '../../common/constants';
@@ -19,6 +20,7 @@ export class CreateExercise {
   activityId: number;
 
   @Expose()
+  @IsOptional()
   @IsInt()
   @ApiProperty({ required: false })
   index?: number;
@@ -29,12 +31,14 @@ export class CreateExercise {
   @ApiProperty()
   statement: string;
 
+  @Expose()
   @IsString({ message: 'La dificultad debe ser un string' })
   @IsEnum(['Fácil', 'Medio', 'Difícil'])
   @ApiProperty()
   difficulty: string;
 
   @Expose()
+  @IsOptional()
   @IsString()
   @ApiProperty()
   hind: string;
@@ -60,111 +64,132 @@ export class CreateExercise {
   // Opciones para las diferentes preguntas.
 
   @Expose()
+  @IsOptional()
   @IsArray()
   @ApiProperty()
   optionSelectOptions: string[];
 
   @Expose()
+  @IsOptional()
   @IsArray()
   @ApiProperty()
   optionOrderFragmentCode: string[];
 
   @Expose()
+  @IsOptional()
   @IsArray()
   @ApiProperty()
   optionOrderLineCode: string[];
 
   @Expose()
+  @IsOptional()
   @IsArray()
   @ApiProperty()
   optionsFindErrorCode: string[];
 
   // Respuestas de las diferentes preguntas.
   @Expose()
+  @IsOptional()
   @IsString()
   @ApiProperty()
   answerSelectCorrect: string;
 
   @Expose()
+  @IsOptional()
   @IsArray()
   @ApiProperty()
   answerSelectsCorrect: string[];
 
   @Expose()
+  @IsOptional()
   @IsArray()
   @ApiProperty()
   answerOrderFragmentCode: string[];
 
   @Expose()
+  @IsOptional()
   @IsArray()
   @ApiProperty()
   answerOrderLineCode: string[];
 
   @Expose()
+  @IsOptional()
   @IsString()
   @ApiProperty()
   answerFindError: string;
 
   @Expose()
+  @IsOptional()
   @IsString()
   @ApiProperty()
   answerWriteCode: string;
 
   // Opciones y respuestas para vertical_ordering
   @Expose()
+  @IsOptional()
   @IsArray()
   @ApiProperty()
   optionsVerticalOrdering: string[];
 
   @Expose()
+  @IsOptional()
   @IsArray()
   @ApiProperty()
   answerVerticalOrdering: string[];
 
   // Opciones y respuestas para horizontal_ordering
   @Expose()
+  @IsOptional()
   @IsArray()
   @ApiProperty()
   optionsHorizontalOrdering: string[];
 
   @Expose()
+  @IsOptional()
   @IsArray()
   @ApiProperty()
   answerHorizontalOrdering: string[];
 
   // Opciones y respuestas para phishing_selection_multiple
   @Expose()
+  @IsOptional()
   @IsArray()
   @ApiProperty()
   optionsPhishingSelection: string[];
 
   @Expose()
+  @IsOptional()
   @IsArray()
   @ApiProperty()
   answerPhishingSelection: string[];
 
   @Expose()
+  @IsOptional()
   @IsString()
   @ApiProperty()
   phishingContext: string;
 
   @Expose()
+  @IsOptional()
   @IsString()
   @ApiProperty()
   phishingImageUrl: string;
 
   // Opciones y respuestas para match_pairs
   @Expose()
+  @IsOptional()
   @IsArray()
   @ApiProperty()
   optionsMatchPairsLeft: string[];
 
   @Expose()
+  @IsOptional()
   @IsArray()
   @ApiProperty()
   optionsMatchPairsRight: string[];
 
   @Expose()
+  @IsOptional()
   @IsArray()
   @ApiProperty()
   answerMatchPairs: { left: string; right: string }[];

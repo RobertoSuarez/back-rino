@@ -275,11 +275,14 @@ export class ActivityService {
           activity: { id: In(activitiesByChapter.map((a) => a.id)) },
           user: { id: userId },
         },
+        relations: ['activity'],
       });
 
-    const progressChapter = Math.floor(
-      (progressActivitiesByChapter.length / activitiesByChapter.length) * 100,
+    const uniqueCompletedActivities = new Set(progressActivitiesByChapter.map(p => p.activity?.id || (p as any).activityId));
+    let progressChapter = Math.floor(
+      (uniqueCompletedActivities.size / activitiesByChapter.length) * 100,
     );
+    if (progressChapter > 100) progressChapter = 100;
 
     let chapterProgressUser = await this.chapterProgressRepo.findOne({
       where: {
@@ -317,12 +320,15 @@ export class ActivityService {
           activity: { id: In(activitiesByCourse.map((a) => a.id)) },
           user: { id: userId },
         },
+        relations: ['activity'],
       },
     );
 
-    const progressCourse = Math.floor(
-      (progressActivitiesByCourse.length / activitiesByCourse.length) * 100,
+    const uniqueCompletedActivities = new Set(progressActivitiesByCourse.map(p => p.activity?.id || (p as any).activityId));
+    let progressCourse = Math.floor(
+      (uniqueCompletedActivities.size / activitiesByCourse.length) * 100,
     );
+    if (progressCourse > 100) progressCourse = 100;
 
     let subscriptionCourse = await this.subscriptionRepo.findOne({
       where: {

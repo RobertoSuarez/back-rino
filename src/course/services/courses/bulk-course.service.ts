@@ -134,20 +134,32 @@ export class BulkCourseService {
                       exercise.difficulty = exData.difficulty || 'Fácil';
                       exercise.hind = exData.hind || 'Analiza bien el mensaje';
                       
-                      if (exercise.typeExercise === 'selection_single') {
-                        exercise.optionSelectOptions = exData.optionSelectOptions || [];
-                        exercise.answerSelectCorrect = exData.answerSelectCorrect || '';
-                      } else if (exercise.typeExercise === 'selection_multiple') {
-                        exercise.optionSelectOptions = exData.optionSelectOptions || [];
-                        exercise.answerSelectsCorrect = exData.answerSelectsCorrect || [];
-                      } else if (exercise.typeExercise === 'match_pairs') {
-                        exercise.optionsMatchPairsLeft = exData.optionsMatchPairsLeft || [];
-                        exercise.optionsMatchPairsRight = exData.optionsMatchPairsRight || [];
-                        exercise.answerMatchPairs = exData.answerMatchPairs || [];
-                      } else if (exercise.typeExercise === 'vertical_ordering') {
-                        exercise.optionsVerticalOrdering = exData.optionsVerticalOrdering || [];
-                        exercise.answerVerticalOrdering = exData.answerVerticalOrdering || [];
-                      }
+                      exercise.optionSelectOptions = exData.optionSelectOptions || [];
+                      exercise.optionOrderFragmentCode = exData.optionOrderFragmentCode || [];
+                      exercise.optionOrderLineCode = exData.optionOrderLineCode || [];
+                      exercise.optionsFindErrorCode = exData.optionsFindErrorCode || [];
+                      
+                      exercise.answerSelectCorrect = exData.answerSelectCorrect || '';
+                      exercise.answerSelectsCorrect = exData.answerSelectsCorrect || [];
+                      exercise.answerOrderFragmentCode = exData.answerOrderFragmentCode || [];
+                      exercise.answerOrderLineCode = exData.answerOrderLineCode || [];
+                      exercise.answerFindError = exData.answerFindError || '';
+                      exercise.answerWriteCode = exData.answerWriteCode || '';
+                      
+                      exercise.optionsVerticalOrdering = exData.optionsVerticalOrdering || [];
+                      exercise.answerVerticalOrdering = exData.answerVerticalOrdering || [];
+                      
+                      exercise.optionsHorizontalOrdering = exData.optionsHorizontalOrdering || [];
+                      exercise.answerHorizontalOrdering = exData.answerHorizontalOrdering || [];
+                      
+                      exercise.optionsPhishingSelection = exData.optionsPhishingSelection || [];
+                      exercise.answerPhishingSelection = exData.answerPhishingSelection || [];
+                      exercise.phishingContext = exData.phishingContext || '';
+                      exercise.phishingImageUrl = exData.phishingImageUrl || '';
+                      
+                      exercise.optionsMatchPairsLeft = exData.optionsMatchPairsLeft || [];
+                      exercise.optionsMatchPairsRight = exData.optionsMatchPairsRight || [];
+                      exercise.answerMatchPairs = exData.answerMatchPairs || [];
                       
                       exercise.activity = savedActivity;
                       exercise.index = l;

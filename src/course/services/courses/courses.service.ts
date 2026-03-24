@@ -169,20 +169,35 @@ export class CoursesService {
   async findMySubscriptionsCourses(userId: number) {
     const usuario = await this.userRepo.findOneOrFail({
       where: { id: userId },
-      relations: ['subscriptions', 'subscriptions.course'],
+      relations: [
+        'subscriptions', 
+        'subscriptions.course', 
+        'subscriptions.course.chapters', 
+        'subscriptions.course.chapters.chapterProgressUsers',
+        'subscriptions.course.chapters.chapterProgressUsers.user'
+      ],
     });
 
     const cursoConProgreso = usuario.subscriptions
       .filter((sub) => sub.course != null)
       .map<CourseWithProgressDto>((sub) => {
+        const chapters = sub.course.chapters || [];
+        const totalProgress = chapters.reduce((sum, chapter) => {
+          const userProgress = chapter.chapterProgressUsers?.find(p => p.user?.id === userId) || 
+                               chapter.chapterProgressUsers?.find(p => (p as any).userId === userId);
+          return sum + (userProgress ? Math.min(100, userProgress.progress) : 0);
+        }, 0);
+        
+        const calculatedProgress = chapters.length > 0 ? Math.round(totalProgress / chapters.length) : 0;
+
         return {
           id: sub.course.id,
           title: sub.course.title,
           code: sub.course.code,
-          chapters: 0,
+          chapters: chapters.length,
           index: sub.course.index,
           urlLogo: sub.course.urlLogo,
-          progress: sub.progreso,
+          progress: calculatedProgress,
         };
       },
       );
@@ -298,7 +313,7 @@ export class CoursesService {
         'subscriptions.progreso AS progreso',
       ])
 
-      .groupBy('course.id, subscriptions.progreso')
+      .groupBy('course.id, subscriptions.progreso, course.title, course.urlLogo, course.code, course.index, course.isPublic')
       .orderBy('subscriptions.progreso', 'ASC');
 
     if (completed) {
@@ -334,7 +349,7 @@ export class CoursesService {
       urlLogo: curso.url_logo,
       code: curso.code,
       chapters: curso.chapters,
-      progress: curso.progreso != null ? curso.progreso : 0,
+      progress: curso.progreso != null ? Math.min(100, curso.progreso) : 0,
       started: curso.progreso != null,
       nextToStart: nextToStart(curso.progreso != null ? true : false),
       index: curso.index,
@@ -401,10 +416,10 @@ export class CoursesService {
       id: chapter.id,
       title: chapter.title,
       shortDescription: chapter.short_description,
-      progress: chapter.progress != null ? chapter.progress : 0,
+      progress: chapter.progress != null ? Math.min(100, chapter.progress) : 0,
       started: chapter.progress != null,
       // TODO: Revisar que nextToStart esta bien.
-      nextToStart: nextToStart(chapter.progress === 100 ? true : false),
+      nextToStart: nextToStart(chapter.progress >= 100 ? true : false),
       index: chapter.index,
     }));
 
