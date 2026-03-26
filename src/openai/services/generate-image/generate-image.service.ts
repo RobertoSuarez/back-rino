@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
+import * as sharp from 'sharp';
 import { ConfigkeyService } from 'src/parameters/services/configkey/configkey.service';
 
 @Injectable()
@@ -69,13 +70,33 @@ export class GenerateImageService {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
 
-    // Generar nombre único para el archivo
-    const fileExtension = path.extname(file.originalname);
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}${fileExtension}`;
+    // Generar nombre único con extensión .webp para el archivo optimizado
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`;
     const filePath = path.join(uploadDir, fileName);
 
-    // Guardar el archivo
-    fs.writeFileSync(filePath, file.buffer);
+    // Optimizar imagen con sharp
+    try {
+      await sharp(file.buffer)
+        .resize(1200, 1200, {
+          fit: 'inside', // Mantiene la proporción sin recortar
+          withoutEnlargement: true // No agranda imágenes pequeñas
+        })
+        .webp({ quality: 80 }) // Convierte a WebP con 80% de calidad
+        .toFile(filePath);
+      
+      console.log(`✅ Imagen optimizada y guardada en: ${filePath}`);
+    } catch (error) {
+      console.error('❌ Error al optimizar la imagen con sharp:', error);
+      // Fallback: Guardar el archivo original si falla la optimización
+      const originalFileName = `${Date.now()}-${Math.random().toString(36).substring(2)}${path.extname(file.originalname)}`;
+      const originalFilePath = path.join(uploadDir, originalFileName);
+      fs.writeFileSync(originalFilePath, file.buffer);
+      console.log(`⚠️ Se guardó el archivo original por error en optimización: ${originalFilePath}`);
+      
+      const baseUrlFallback = this._configService.get('BASE_URL');
+      const finalBaseUrlFallback = baseUrlFallback || 'http://localhost:3000';
+      return `${finalBaseUrlFallback}/uploads/images/${originalFileName}`;
+    }
 
     // Devolver URL accesible desde el frontend
     const baseUrl = this._configService.get('BASE_URL');
