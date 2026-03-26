@@ -78,7 +78,13 @@ export class GenerateImageService {
     fs.writeFileSync(filePath, file.buffer);
 
     // Devolver URL accesible desde el frontend
-    const baseUrl = this._configService.get('BASE_URL') || 'http://localhost:3000';
+    const baseUrl = this._configService.get('BASE_URL');
+    
+    if (!baseUrl) {
+      console.warn('WARNING: BASE_URL is not defined in environment variables. Defaulting to http://localhost:3000');
+      return `http://localhost:3000/uploads/images/${fileName}`;
+    }
+
     return `${baseUrl}/uploads/images/${fileName}`;
   }
 }
