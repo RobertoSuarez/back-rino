@@ -59,7 +59,7 @@ export class InstitutionController {
   @ApiOperation({ summary: 'Subir imagen de logo para institución (solo admin)' })
   @UseInterceptors(FileInterceptor('file'))
   async uploadImage(@UploadedFile() file: Express.Multer.File) {
-    const url = await this.generateImageService.uploadImage(file);
+    const url = await this.generateImageService.uploadImage(file, 'instituciones/logos');
     return {
       statusCode: HttpStatus.CREATED,
       message: 'Imagen subida exitosamente',

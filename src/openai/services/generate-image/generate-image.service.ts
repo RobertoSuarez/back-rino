@@ -1,20 +1,27 @@
-import { Injectable } from '@nestjs/common';
-// import { v2 as cloudinary } from 'cloudinary';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { v2 as cloudinary } from 'cloudinary';
 import { v4 as uuid } from 'uuid';
 import OpenAI from 'openai';
 import { ConfigService } from '@nestjs/config';
 import * as path from 'path';
-import * as os from 'os';
-import * as fs from 'fs';
 import * as sharp from 'sharp';
+import * as streamifier from 'streamifier';
 import { ConfigkeyService } from 'src/parameters/services/configkey/configkey.service';
 
 @Injectable()
-export class GenerateImageService {
+export class GenerateImageService implements OnModuleInit {
   constructor(
     private _configService: ConfigService,
     private _configkeyService: ConfigkeyService,
   ) {}
+
+  onModuleInit() {
+    cloudinary.config({
+      cloud_name: this._configService.get('CLOUDINARY_CLOUD_NAME'),
+      api_key: this._configService.get('CLOUDINARY_API_KEY'),
+      api_secret: this._configService.get('CLOUDINARY_API_SECRET'),
+    });
+  }
 
   async generateImageWithDalle3(prompt: string) {
     const openai = new OpenAI({
@@ -28,84 +35,58 @@ export class GenerateImageService {
       size: '1024x1024',
     });
     
-    // Comentamos todo el código relacionado con Cloudinary
-    /*
-    const config = {
-      cloud_name: this._configService.get('CLOUDINARY_CLOUD_NAME'),
-      api_key: this._configService.get('CLOUDINARY_API_KEY'),
-      api_secret: this._configService.get('CLOUDINARY_API_SECRET'),
-    };
-    cloudinary.config(config);
+    const imageUrl = response.data[0].url;
 
-    const publicId = 'dalle3' + uuid();
-    const timestamp = Math.floor(Date.now() / 1000);
-    const apiSecret = this._configService.get('CLOUDINARY_API_SECRET');
-
-    // Genera la cadena de la firma
-    const signature = cloudinary.utils.api_sign_request(
-      { public_id: publicId, timestamp: timestamp },
-      apiSecret,
-    );
-
-    // Subimos la imagen a cloudinary.
-    const uploadResult = await cloudinary.uploader.upload(
-      response.data[0].url,
-      {
-        public_id: publicId,
-        timestamp: timestamp,
-        signature: signature,
-        api_key: this._configService.get('CLOUDINARY_API_KEY'),
-      },
-    );
-    */
-
-    // Devolvemos directamente la URL de la imagen generada por OpenAI
-    return response.data[0].url;
+    // Subimos la imagen a cloudinary para persistencia.
+    try {
+      const uploadResult = await cloudinary.uploader.upload(imageUrl, {
+        folder: 'ia-generadas',
+        public_id: 'ia-' + uuid(),
+      });
+      return uploadResult.secure_url;
+    } catch (error) {
+      console.error('❌ Error al subir imagen de DALL-E a Cloudinary:', error);
+      return imageUrl; // Fallback a la URL temporal de OpenAI
+    }
   }
 
-  async uploadImage(file: Express.Multer.File) {
-    // Crear directorio si no existe
-    const uploadDir = path.join(process.cwd(), 'uploads', 'images');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    // Generar nombre único con extensión .webp para el archivo optimizado
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`;
-    const filePath = path.join(uploadDir, fileName);
-
-    // Optimizar imagen con sharp
+  async uploadImage(
+    file: Express.Multer.File,
+    folder: string = 'cursos/portadas',
+  ): Promise<string> {
     try {
-      await sharp(file.buffer)
+      // 1. Optimizar imagen con sharp
+      const optimizedBuffer = await sharp(file.buffer)
         .resize(1200, 1200, {
-          fit: 'inside', // Mantiene la proporción sin recortar
-          withoutEnlargement: true // No agranda imágenes pequeñas
+          fit: 'inside',
+          withoutEnlargement: true,
         })
-        .webp({ quality: 80 }) // Convierte a WebP con 80% de calidad
-        .toFile(filePath);
-      
-      console.log(`✅ Imagen optimizada y guardada en: ${filePath}`);
+        .webp({ quality: 80 })
+        .toBuffer();
+
+      // 2. Subir a Cloudinary usando un stream
+      return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: folder,
+            public_id: `${folder.split('/').pop()}-${Date.now()}-${uuid().substring(0, 8)}`,
+            format: 'webp',
+          },
+          (error, result) => {
+            if (error) {
+              console.error('❌ Error en el stream de Cloudinary:', error);
+              return reject(error);
+            }
+            console.log(`✅ Imagen subida a Cloudinary en carpeta [${folder}]: ${result.secure_url}`);
+            resolve(result.secure_url);
+          },
+        );
+
+        streamifier.createReadStream(optimizedBuffer).pipe(uploadStream);
+      });
     } catch (error) {
-      console.error('❌ Error al optimizar la imagen con sharp:', error);
-      // Fallback: Guardar el archivo original si falla la optimización
-      const originalFileName = `${Date.now()}-${Math.random().toString(36).substring(2)}${path.extname(file.originalname)}`;
-      const originalFilePath = path.join(uploadDir, originalFileName);
-      fs.writeFileSync(originalFilePath, file.buffer);
-      console.log(`⚠️ Se guardó el archivo original por error en optimización: ${originalFilePath}`);
-      
-      const baseUrlFallback = this._configService.get('BASE_URL');
-      const finalBaseUrlFallback = baseUrlFallback || 'http://localhost:3000';
-      return `${finalBaseUrlFallback}/uploads/images/${originalFileName}`;
+      console.error('❌ Error general en uploadImage:', error);
+      throw new Error('No se pudo procesar o subir la imagen');
     }
-
-    // Devolver URL accesible desde el frontend
-    const baseUrl = this._configService.get('BASE_URL');
-    
-    if (!baseUrl) {
-      console.warn('WARNING: BASE_URL is not defined in environment variables. Defaulting to http://localhost:3000');
-      return `http://localhost:3000/uploads/images/${fileName}`;
-    }
-
-    return `${baseUrl}/uploads/images/${fileName}`;
   }
 }
