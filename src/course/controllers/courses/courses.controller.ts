@@ -190,9 +190,11 @@ export class CoursesController {
   @Post('upload-image')
   @UseInterceptors(FileInterceptor('file'))
   async uploadImage(@UploadedFile() file: Express.Multer.File) {
-    const url = await this._generateImageService.uploadImage(file);
+    const url = await this._generateImageService.uploadImage(file, 'cursos/portadas');
     return {
-      url,
+      statusCode: 201,
+      message: 'Imagen de portada subida exitosamente',
+      data: { url },
     };
   }
 }

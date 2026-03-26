@@ -62,6 +62,7 @@ export class LearningPathService {
         id: lp.createdBy.id,
         firstName: lp.createdBy.firstName,
         lastName: lp.createdBy.lastName,
+        urlAvatar: lp.createdBy.urlAvatar,
       } : null,
       createdAt: DateTime.fromISO(lp.createdAt.toISOString()).toFormat(
         formatDateFrontend,
@@ -103,6 +104,7 @@ export class LearningPathService {
         id: learningPath.createdBy.id,
         firstName: learningPath.createdBy.firstName,
         lastName: learningPath.createdBy.lastName,
+        urlAvatar: learningPath.createdBy.urlAvatar,
       } : null,
       createdAt: DateTime.fromISO(learningPath.createdAt.toISOString()).toFormat(
         formatDateFrontend,
