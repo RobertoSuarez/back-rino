@@ -34,7 +34,7 @@ export class GeminiService {
   constructor(
     private readonly configService: ConfigService,
     private readonly configkeyService: ConfigkeyService,
-  ) {}
+  ) { }
 
   private async resolveApiKey(): Promise<string | null> {
     const keyFromDb = await this.configkeyService.getKeyGemini();
@@ -91,19 +91,19 @@ export class GeminiService {
    */
   private isInappropriateContent(content: string): boolean {
     if (!content) return false;
-    
+
     const lowerContent = content.toLowerCase();
-    
+
     // Si el contenido menciona prevención, protección o defensa, ser más permisivo
-    const isPreventiveContext = 
-      lowerContent.includes('prevención') || 
-      lowerContent.includes('protección') || 
+    const isPreventiveContext =
+      lowerContent.includes('prevención') ||
+      lowerContent.includes('protección') ||
       lowerContent.includes('defender') ||
       lowerContent.includes('defensa') ||
       lowerContent.includes('seguridad') ||
       lowerContent.includes('concientización') ||
       lowerContent.includes('educación');
-    
+
     // Verificar palabras clave inapropiadas
     for (const keyword of this.inappropriateKeywords) {
       if (lowerContent.includes(keyword)) {
@@ -111,7 +111,7 @@ export class GeminiService {
         if (isPreventiveContext) {
           const allowedInContext = ['acoso', 'pornografía', 'abuso', 'violencia', 'sexo', 'sexual', 'droga', 'ataque'];
           if (allowedInContext.some(k => keyword.includes(k) || k.includes(keyword))) {
-            continue; 
+            continue;
           }
         }
 
@@ -119,7 +119,7 @@ export class GeminiService {
         return true;
       }
     }
-    
+
     return false;
   }
 
@@ -201,7 +201,7 @@ La descripción debe:
 - Ser clara y atractiva
 - Explicar por qué es importante para su seguridad digital
 - Incluir un emoji relevante`;
-    
+
     const shortDescription = await this.generateContent(shortDescPrompt);
 
     // Generar teoría completa
@@ -223,7 +223,7 @@ INSTRUCCIONES IMPORTANTES:
 - Proporciona ejemplos del mundo real que los adolescentes puedan entender
 - Estructura el contenido de forma clara y fácil de seguir
 - Extensión aproximada: 500-800 palabras`;
-    
+
     const theory = await this.generateContent(theoryPrompt);
 
     return { shortDescription, theory };
@@ -441,6 +441,8 @@ RESPUESTA CORRECTA: ${answerSelectCorrect}
 RESPUESTA DEL USUARIO: ${answerSelect}
 
 INSTRUCCIONES:
+- Sé muy breve y directo (máximo 2 o 3 oraciones cortas).
+- Cuida estrictamente la ortografía y evita el exceso de mayúsculas (úsalas solo donde sea gramaticalmente correcto).
 - Si la respuesta es correcta, felicita al usuario y explica por qué es importante este conocimiento para su seguridad digital
 - Si es incorrecta, explica por qué de forma amigable y proporciona la información correcta
 - Sé constructivo, educativo y motivador
@@ -477,6 +479,8 @@ RESPUESTA CORRECTAS: ${answerSelectsCorrect.join(', ')}
 RESPUESTA DEL USUARIO: ${answerSelect.join(', ')}
 
 INSTRUCCIONES:
+- Sé muy breve y directo (máximo 2 o 3 oraciones cortas).
+- Cuida estrictamente la ortografía y evita el exceso de mayúsculas (úsalas solo donde sea gramaticalmente correcto).
 - Menciona qué opciones seleccionó correctamente y cuáles no
 - Explica por qué cada opción es correcta o incorrecta en el contexto de ciberseguridad
 - Proporciona retroalimentación constructiva, educativa y motivadora
@@ -513,6 +517,8 @@ ORDEN CORRECTO: ${answerOrderFragmentCodeCorrect.join(' -> ')}
 ORDEN DEL USUARIO: ${answerOrderFragmentCodeUser.join(' -> ')}
 
 INSTRUCCIONES:
+- Sé muy breve y directo (máximo 2 o 3 oraciones cortas).
+- Cuida estrictamente la ortografía y evita el exceso de mayúsculas (úsalas solo donde sea gramaticalmente correcto).
 - Proporciona una retroalimentación constructiva sobre el orden de los fragmentos
 - Explica por qué el orden correcto es importante para la seguridad
 - Si hay errores, ayuda al estudiante a entender la lógica correcta
@@ -548,6 +554,8 @@ ORDEN CORRECTO: ${answerOrderLineCode.join('\n')}
 ORDEN DEL USUARIO: ${answerOrderLineCodeUser.join('\n')}
 
 INSTRUCCIONES:
+- Sé muy breve y directo (máximo 2 o 3 oraciones cortas).
+- Cuida estrictamente la ortografía y evita el exceso de mayúsculas (úsalas solo donde sea gramaticalmente correcto).
 - Proporciona una retroalimentación constructiva sobre el orden de las líneas
 - Explica por qué el orden correcto es importante para la seguridad
 - Si hay errores, ayuda al estudiante a entender la lógica correcta
@@ -583,6 +591,8 @@ RESPUESTA CORRECTA: ${correctAnswerFindError}
 RESPUESTA DEL USUARIO: ${userAnswerFindError}
 
 INSTRUCCIONES:
+- Sé muy breve y directo (máximo 2 o 3 oraciones cortas).
+- Cuida estrictamente la ortografía y evita el exceso de mayúsculas (úsalas solo donde sea gramaticalmente correcto).
 - Proporciona una retroalimentación constructiva sobre la identificación del error
 - Explica por qué es importante detectar este tipo de errores de seguridad
 - Si el estudiante no identificó el error correctamente, ayúdale a entender dónde está
@@ -622,9 +632,12 @@ Por favor, evalúa el código del usuario considerando:
 - Cumplimiento del objetivo de seguridad
 - Importancia para proteger sistemas y datos
 
-Proporciona una retroalimentación constructiva, educativa y motivadora.
-Usa emojis relevantes para hacerlo más atractivo.
-Destaca por qué el código correcto es importante para la seguridad.
+INSTRUCCIONES ADICIONALES:
+- Sé muy breve y directo (máximo 2 o 3 oraciones cortas).
+- Cuida estrictamente la ortografía y evita el exceso de mayúsculas (úsalas solo donde sea gramaticalmente correcto).
+- Proporciona una retroalimentación constructiva, educativa y motivadora.
+- Usa emojis relevantes para hacerlo más atractivo.
+- Destaca por qué el código correcto es importante para la seguridad.
 
 Responde en formato JSON con la siguiente estructura:
 {
@@ -655,6 +668,8 @@ ORDEN CORRECTO: ${answerCorrect.join('\\n')}
 ORDEN DEL USUARIO: ${answerUser.join('\\n')}
 
 INSTRUCCIONES:
+- Sé muy breve y directo (máximo 2 o 3 oraciones cortas).
+- Cuida estrictamente la ortografía y evita el exceso de mayúsculas (úsalas solo donde sea gramaticalmente correcto).
 - Proporciona retroalimentación constructiva sobre el orden de los elementos
 - Explica por qué el orden correcto es importante para la seguridad o el concepto tratado
 - Si hay errores, ayuda al estudiante a entender la lógica jerárquica o secuencial
@@ -690,6 +705,8 @@ SECUENCIA CORRECTA: ${answerCorrect.join(' -> ')}
 SECUENCIA DEL USUARIO: ${answerUser.join(' -> ')}
 
 INSTRUCCIONES:
+- Sé muy breve y directo (máximo 2 o 3 oraciones cortas).
+- Cuida estrictamente la ortografía y evita el exceso de mayúsculas (úsalas solo donde sea gramaticalmente correcto).
 - Proporciona retroalimentación constructiva sobre la secuencia ordenada
 - Explica por qué ese flujo paso a paso es vital para la ciberseguridad
 - Si hay errores, ayuda al estudiante a entender por qué un paso va antes o después
@@ -728,6 +745,8 @@ INDICADORES REALES DE RIESGO: ${answerCorrect.join(', ')}
 SELECCIONES DEL USUARIO: ${answerUser.join(', ')}
 
 INSTRUCCIONES:
+- Sé muy breve y directo (máximo 2 o 3 oraciones cortas).
+- Cuida estrictamente la ortografía y evita el exceso de mayúsculas (úsalas solo donde sea gramaticalmente correcto).
 - Menciona qué señales de alerta de phishing identificaron correctamente y cuáles pasaron por alto o seleccionaron erróneamente
 - Explica por qué cada indicador real es una táctica usada por ciberdelincuentes
 - Proporciona retroalimentación constructiva para ayudarles a estar más alertas a futuro
@@ -763,6 +782,8 @@ EMPAREJAMIENTO CORRECTO: ${answerCorrect}
 EMPAREJAMIENTO DEL USUARIO: ${answerUser}
 
 INSTRUCCIONES:
+- Sé muy breve y directo (máximo 2 o 3 oraciones cortas).
+- Cuida estrictamente la ortografía y evita el exceso de mayúsculas (úsalas solo donde sea gramaticalmente correcto).
 - Proporciona una explicación clara de cuáles parejas fueron correctas y cuáles erradas
 - Refuerza o aclara brevemente el concepto de aquellos emparejamientos que estuvieron mal
 - Si emparejaron todo perfecto, refuérzales lo genial que es que dominen esos conceptos
@@ -820,16 +841,16 @@ Responde en formato JSON con la siguiente estructura:
 
       const response = result.response;
       const text = response.text();
-      
+
       // Intentar extraer JSON de la respuesta
       try {
         // Buscar el JSON en el texto usando regex
         const jsonMatch = text.match(/\{[\s\S]*?\}/);
-        
+
         if (jsonMatch) {
           const jsonString = jsonMatch[0];
           const jsonResponse = JSON.parse(jsonString);
-          
+
           return {
             qualification: Number(jsonResponse.qualification) || 0,
             feedback: jsonResponse.feedback || 'Retroalimentación no disponible',
@@ -845,11 +866,11 @@ Responde en formato JSON con la siguiente estructura:
       } catch (parseError) {
         // Si no se puede parsear como JSON, extraer información manualmente
         console.warn('No se pudo parsear JSON de Gemini, usando texto completo:', text);
-        
+
         // Intentar extraer calificación del texto si está presente
         const qualificationMatch = text.match(/(?:qualification|calificación|puntuación)[\s:]*(\d+(?:\.\d+)?)/i);
         const qualification = qualificationMatch ? Number(qualificationMatch[1]) : 5;
-        
+
         return {
           qualification: Math.min(Math.max(qualification, 0), 10), // Asegurar que esté entre 0 y 10
           feedback: text.replace(/```json|```/g, '').trim(), // Limpiar markdown si existe
@@ -972,13 +993,13 @@ No incluyas explicaciones ni markdown, solo el JSON puro.`;
         let cleanedJson = jsonMatch[0]
           .replace(/[\u0000-\u001F\u007F-\u009F]/g, "") // Eliminar caracteres de control
           .trim();
-        
+
         // 2. Eliminar comas finales que rompen JSON.parse
         cleanedJson = cleanedJson.replace(/,\s*([\]\}])/g, "$1");
-        
+
         return JSON.parse(cleanedJson);
       }
-      
+
       // Fallback
       const textOnly = response.replace(/```json|```/g, '').trim();
       const finalJson = textOnly.replace(/,\s*([\]\}])/g, "$1");
@@ -986,7 +1007,7 @@ No incluyas explicaciones ni markdown, solo el JSON puro.`;
     } catch (error) {
       this.logger.error('Error al parsear estructura de curso:', error);
       this.logger.error('Respuesta original de Gemini (posible truncamiento):', response);
-      
+
       // Intento de reparación manual para JSON truncado
       try {
         const repaired = this.tryRepairJson(response);
@@ -1021,7 +1042,7 @@ No incluyas explicaciones ni markdown, solo el JSON puro.`;
       return JSON.parse(jsonMatch ? jsonMatch[0] : response);
     } catch (e) {
       this.logger.error('Error sugiriendo títulos:', e);
-      return [`Curso de ${topic}`, `${topic} para Jóvenes`, `Dominando ${topic}`];
+      return [`Curso de ${topic}`, `${topic} para jóvenes`, `Dominando ${topic}`];
     }
   }
 
@@ -1036,6 +1057,7 @@ No incluyas explicaciones ni markdown, solo el JSON puro.`;
     - title: Un nombre creativo (evita "Capítulo 1", "Introducción", etc. Sé específico).
     - description: Una descripción breve de lo que se aprenderá.
     
+    REGLA GRAMATICAL ESTRICTA para los títulos y descripciones: Usa formato "tipo oración" (sentence case). SOLO la primera letra de la primera palabra y los nombres propios van en mayúscula. TODAS las demás palabras DEBEN ir obligatoriamente en minúscula (ej. "Entendiendo las amenazas", NUNCA "Entendiendo Las Amenazas"). ¡No uses formato de título en inglés!
     Responde ÚNICAMENTE con un array JSON de objetos: [{"title": "...", "description": "..."}, ...]`;
 
     const response = await this.generateContent(prompt);
@@ -1055,28 +1077,28 @@ No incluyas explicaciones ni markdown, solo el JSON puro.`;
     let text = json.trim();
     const jsonMatch = text.match(/\{[\s\S]*/);
     if (!jsonMatch) return null;
-    
+
     text = jsonMatch[0];
-    
+
     const stack: string[] = [];
     let isString = false;
     let escaped = false;
 
     let i = 0;
     while (i < text.length) {
-        const char = text[i];
-        if (char === '"' && !escaped) {
-            isString = !isString;
+      const char = text[i];
+      if (char === '"' && !escaped) {
+        isString = !isString;
+      }
+      if (!isString) {
+        if (char === '{' || char === '[') {
+          stack.push(char);
+        } else if (char === '}' || char === ']') {
+          stack.pop();
         }
-        if (!isString) {
-            if (char === '{' || char === '[') {
-                stack.push(char);
-            } else if (char === '}' || char === ']') {
-                stack.pop();
-            }
-        }
-        escaped = char === '\\' && !escaped;
-        i++;
+      }
+      escaped = char === '\\' && !escaped;
+      i++;
     }
 
     // Si terminó dentro de un string, cerrarlo
@@ -1084,17 +1106,17 @@ No incluyas explicaciones ni markdown, solo el JSON puro.`;
 
     // Cerrar el stack en orden inverso
     while (stack.length > 0) {
-        const last = stack.pop();
-        if (last === '{') text += '}';
-        else if (last === '[') text += ']';
+      const last = stack.pop();
+      if (last === '{') text += '}';
+      else if (last === '[') text += ']';
     }
 
     try {
-        // Limpieza final antes de parsear (quitar comas finales que rompen)
-        const cleaned = text.replace(/,\s*([\]\}])/g, "$1");
-        return JSON.parse(cleaned);
+      // Limpieza final antes de parsear (quitar comas finales que rompen)
+      const cleaned = text.replace(/,\s*([\]\}])/g, "$1");
+      return JSON.parse(cleaned);
     } catch (e) {
-        return null;
+      return null;
     }
   }
 }
