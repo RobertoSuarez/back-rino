@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Query,
+  Request,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -51,6 +52,21 @@ export class TemaController {
     const result = await this._temaService.findTheoryByTemaId(temaId);
     return {
       theory: result,
+    };
+  }
+
+  @Post(':id/mark-theory-read')
+  @ApiOperation({ summary: 'Marca la teoría de un tema como leída por el estudiante' })
+  async markTheoryRead(
+    @Param('id', ParseIntPipe) temaId: number,
+    @Request() req,
+  ) {
+    const { id: userId } = req.user;
+    const result = await this._temaService.markTheoryRead(temaId, userId);
+    return {
+      statusCode: 200,
+      message: '¡Teoría registrada! Ya puedes acceder a las misiones.',
+      data: result,
     };
   }
 

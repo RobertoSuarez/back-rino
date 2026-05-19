@@ -84,6 +84,9 @@ export class TumisShopService {
     // Actualizar balances
     user.mullu -= offer.mulluCost;
     user.tumis += offer.tumisAmount;
+    if (user.typeUser === 'student' && user.tumis > 15) {
+      user.tumis = 15;
+    }
 
     // Guardar usuario actualizado
     await this.userRepository.save(user);

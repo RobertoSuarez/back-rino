@@ -9,6 +9,8 @@ import {
 } from '../../../course/dtos/tema.dtos';
 import { Chapter } from '../../../database/entities/chapter.entity';
 import { Tema } from '../../../database/entities/tema.entity';
+import { TemaProgressUser } from '../../../database/entities/temaProgressUser.entity';
+import { User } from '../../../database/entities/user.entity';
 import { IsNull, Repository } from 'typeorm';
 import { ActivityService } from '../activity/activity.service';
 import { DateTime } from 'luxon';
@@ -19,6 +21,8 @@ export class TemaService {
   constructor(
     @InjectRepository(Tema) private temaRepo: Repository<Tema>,
     @InjectRepository(Chapter) private chapterRepo: Repository<Chapter>,
+    @InjectRepository(TemaProgressUser) private temaProgressRepo: Repository<TemaProgressUser>,
+    @InjectRepository(User) private userRepo: Repository<User>,
     private activityService: ActivityService,
   ) {}
 
@@ -36,6 +40,19 @@ export class TemaService {
       .orderBy('tema.index', 'ASC')
       .getMany();
 
+    // Obtener theoryRead para todos los temas de este usuario en un solo query
+    const temaIds = result.map((t) => t.id);
+    const theoryReadRecords = temaIds.length > 0
+      ? await this.temaProgressRepo
+          .createQueryBuilder('tp')
+          .select(['tp.temaId', 'tp.theoryRead'])
+          .where('tp.userId = :userId AND tp.temaId IN (:...temaIds)', { userId, temaIds })
+          .getRawMany()
+      : [];
+    const theoryReadMap = new Map<number, boolean>(
+      theoryReadRecords.map((r) => [r.tp_temaId, r.tp_theoryRead])
+    );
+
     const temas = result.map((tema) => {
       const t = {
         id: tema.id,
@@ -47,6 +64,7 @@ export class TemaService {
         completedActivities: 0,
         activitiesToComplete: 0,
         nextToStart: false,
+        theoryRead: theoryReadMap.get(tema.id) ?? false,
       };
       const temaActivities = tema.activities.map((a) => {
         const progress =
@@ -112,6 +130,27 @@ export class TemaService {
     });
 
     return temas;
+  }
+
+  /**
+   * Marca la teoría de un tema como leída para el usuario.
+   * Crea o actualiza el registro en tema_progress_user.
+   */
+  async markTheoryRead(temaId: number, userId: number): Promise<{ theoryRead: boolean }> {
+    let record = await this.temaProgressRepo.findOne({
+      where: { tema: { id: temaId }, user: { id: userId } },
+    });
+
+    if (!record) {
+      record = new TemaProgressUser();
+      record.tema = await this.temaRepo.findOneBy({ id: temaId });
+      record.user = await this.userRepo.findOneBy({ id: userId });
+      record.progress = 0;
+    }
+
+    record.theoryRead = true;
+    await this.temaProgressRepo.save(record);
+    return { theoryRead: true };
   }
 
   async findTheoryByTemaId(temaId: number): Promise<string> {

@@ -102,6 +102,8 @@ export class ExercisesService {
             ? 'Teórica'
             : 'Practica',
         hind: e.hind,
+        answerSelectsCorrect: e.answerSelectsCorrect || [],
+        answerSelectCorrect: e.answerSelectCorrect || '',
         optionSelectOptions: e.optionSelectOptions.sort(this.aleatorio),
         optionOrderFragmentCode: e.optionOrderFragmentCode.sort(this.aleatorio),
         optionOrderLineCode: e.optionOrderLineCode.sort(this.aleatorio),

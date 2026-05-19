@@ -13,6 +13,9 @@ export class TemaProgressUser {
   @Column({ default: 0 })
   progress: number;
 
+  @Column({ type: 'boolean', default: false })
+  theoryRead: boolean;
+
   @ManyToOne(() => User, (user) => user.temaProgressUser)
   user: User;
 

@@ -31,7 +31,7 @@ export class ActivityService {
     private subscriptionRepo: Repository<Subscription>,
     private transactionHelper: TransactionHelper,
     @InjectRepository(Course) private courseRepo: Repository<Course>,
-  ) {}
+  ) { }
 
   async findActivityByID(id: number) {
     const activity = await this.activityRepo.findOneBy({
@@ -126,10 +126,12 @@ export class ActivityService {
           typeExercise: e.typeExercise,
           approach:
             e.typeExercise === 'selection_single' ||
-            e.typeExercise === 'selection_multiple'
+              e.typeExercise === 'selection_multiple'
               ? 'Teórica'
               : 'Practica',
           hind: e.hind,
+          answerSelectsCorrect: e.answerSelectsCorrect || [],
+          answerSelectCorrect: e.answerSelectCorrect || '',
           optionSelectOptions: e.optionSelectOptions.sort(this.aleatorio),
           optionOrderFragmentCode: e.optionOrderFragmentCode.sort(
             this.aleatorio,
@@ -137,8 +139,11 @@ export class ActivityService {
           optionOrderLineCode: e.optionOrderLineCode.sort(this.aleatorio),
           optionFindErrorCode: e.optionsFindErrorCode.sort(this.aleatorio),
           optionsVerticalOrdering: (e.optionsVerticalOrdering || []).sort(this.aleatorio),
+          answerVerticalOrdering: e.answerVerticalOrdering || [],
           optionsHorizontalOrdering: (e.optionsHorizontalOrdering || []).sort(this.aleatorio),
+          answerHorizontalOrdering: e.answerHorizontalOrdering || [],
           optionsPhishingSelection: (e.optionsPhishingSelection || []).sort(this.aleatorio),
+          answerPhishingSelection: e.answerPhishingSelection || [],
           phishingContext: e.phishingContext || '',
           phishingImageUrl: e.phishingImageUrl || '',
           optionsMatchPairsLeft: e.optionsMatchPairsLeft || [],
@@ -160,12 +165,14 @@ export class ActivityService {
     payload: FeedbackExerciseDto[],
   ) {
     const score = payload.reduce(
-      (sum, current) => sum + current.qualification,
+      (sum, current) => sum + (current.qualification ?? 0),
       0,
     );
-    // const average = score / payload.length;
 
-    const precision = Math.round((score / (payload.length * 10)) * 100);
+    // Guard against empty payload (division by zero → NaN)
+    const precision = payload.length > 0
+      ? Math.round((score / (payload.length * 10)) * 100)
+      : 0;
 
     const activity = await this.activityRepo.findOne({
       where: { id: activityID },
@@ -189,16 +196,24 @@ export class ActivityService {
         id: userId,
       });
       activityProgressUser.activity = activity;
-      activityProgressUser.progress = 100;
+    }
+
+    // Umbral mínimo de aprobación: 60% de precisión
+    // Solo se marca como completada (progress=100) si alcanza el umbral.
+    // Esto desbloquea el siguiente tema.
+    const APPROVAL_THRESHOLD = 60;
+    const meetsThreshold = precision >= APPROVAL_THRESHOLD;
+
+    // Si ya había un intento anterior aprobado, no degradar el progreso
+    const previousProgress = activityProgressUser.progress ?? 0;
+    activityProgressUser.progress = meetsThreshold
+      ? 100
+      : Math.min(previousProgress, 99); // Nunca 100 si no llega al umbral
+
+    // Guardar siempre el mejor intento de score/accuracy
+    if (score > (activityProgressUser.score ?? 0)) {
       activityProgressUser.score = score;
       activityProgressUser.accuracy = precision;
-      // await this.activityProgressUserRepo.save(newActivityProgressUser);
-    } else {
-      // simplemente lo actualizamos con el progreso.
-      activityProgressUser.progress = 100;
-      activityProgressUser.score = score;
-      activityProgressUser.accuracy = precision;
-      // await this.activityProgressUserRepo.save(activityProgressUser);
     }
 
     const activityProgress =
@@ -208,10 +223,12 @@ export class ActivityService {
 
     // Calcular precisión en escala 0-10
     // precision ya está en porcentaje (0-100), convertir a escala 0-10
-    const precisionScale = precision / 10; // Ejemplo: 100% = 10, 80% = 8
+    const precisionScale = precision / 10;
 
-    // Calcular Mullu: Precisión × 2
-    const mulluReward = Math.round(precisionScale * 2);
+    // Calcular Mullu: Precisión × 2 — garantizar entero válido
+    const mulluReward = Number.isFinite(precisionScale)
+      ? Math.max(0, Math.round(precisionScale * 2))
+      : 0;
 
     // Otorgar Mullu usando el sistema de transacciones
     try {
@@ -247,7 +264,9 @@ export class ActivityService {
       accuracy: activityProgress.accuracy,
       activity: activityProgress.activity.title,
       gems: gems,
-      mulluEarned: mulluReward, // Agregar Mullu ganado a la respuesta
+      mulluEarned: mulluReward,
+      passed: activityProgress.progress === 100, // true si superó el umbral del 60%
+      approvalThreshold: 60,
     };
   }
 

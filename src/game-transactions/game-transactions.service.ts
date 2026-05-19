@@ -56,6 +56,11 @@ export class GameTransactionsService {
       balanceAfter = dto.amount;
     }
 
+    // Enforce 15 tumis max cap for students
+    if (dto.resourceType === ResourceType.TUMIS && user.typeUser === 'student' && balanceAfter > 15) {
+      balanceAfter = 15;
+    }
+
     // Crear la transacción
     const transaction = this.transactionRepository.create({
       ...dto,

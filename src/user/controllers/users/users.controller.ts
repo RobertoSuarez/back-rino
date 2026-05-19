@@ -235,4 +235,11 @@ export class UsersController {
       data: await this._usersService.deleteUser(id)
     };
   }
+
+  @Post('claim-welcome-gift')
+  @UseGuards(AuthGuard)
+  @ApiOperation({ summary: 'Reclama el regalo de bienvenida y completa el onboarding' })
+  async claimWelcomeGift(@Request() req) {
+    return await this._usersService.claimWelcomeGift(req.user.id);
+  }
 }

@@ -279,6 +279,7 @@ export class UsersService {
         isVerified: user.isVerified,
         approved: user.approved,
         institutionId: user.institutionId,
+        hasCompletedOnboarding: user.hasCompletedOnboarding,
         institution: user.institution ? {
           id: user.institution.id,
           name: user.institution.name,
@@ -309,6 +310,7 @@ export class UsersService {
         typeUser: user.typeUser,
         requiredUpdate: user.requiredUpdate,
         institutionId: user.institutionId,
+        hasCompletedOnboarding: user.hasCompletedOnboarding,
         institution: user.institution ? {
           id: user.institution.id,
           name: user.institution.name,
@@ -363,11 +365,12 @@ export class UsersService {
       user.approved = false;
     } else {
       user.approved = true;
-      // Bonificación de bienvenida para estudiantes nuevos
+      // Inicializar estudiante nuevo (recursos en 0 hasta completar el onboarding)
       if (user.typeUser === 'student') {
-        user.tumis = 5;
-        user.mullu = 100;
+        user.tumis = 0;
+        user.mullu = 0;
         user.yachay = 0;
+        user.hasCompletedOnboarding = false;
       }
     }
 
@@ -457,6 +460,7 @@ export class UsersService {
       gender: user.gender,
       status: user.status,
       typeUser: user.typeUser,
+      hasCompletedOnboarding: user.hasCompletedOnboarding,
     };
   }
   
@@ -518,6 +522,9 @@ export class UsersService {
   ): Promise<LivesWithGemsDto> {
     const user = await this._userRepo.findOneBy({ id: userId });
     user.tumis = payload.lives;
+    if (user.typeUser === 'student' && user.tumis > 15) {
+      user.tumis = 15;
+    }
     user.yachay = payload.gems;
     await this._userRepo.save(user);
 
@@ -538,6 +545,9 @@ export class UsersService {
 
     user.yachay = payload.yachay;
     user.tumis = payload.tumis;
+    if (user.typeUser === 'student' && user.tumis > 15) {
+      user.tumis = 15;
+    }
     user.mullu = payload.mullu;
 
     await this._userRepo.save(user);
@@ -586,12 +596,41 @@ export class UsersService {
       gem: user.yachay,
       typeUser: user.typeUser,
       gender: user.gender,
+      hasCompletedOnboarding: user.hasCompletedOnboarding,
       institutionId: user.institutionId,
       institution: user.institution ? {
         id: user.institution.id,
         name: user.institution.name,
         logoUrl: user.institution.logoUrl,
       } : null,
+    };
+  }
+
+  async claimWelcomeGift(userId: number) {
+    const user = await this.findById(userId);
+    if (user.typeUser !== 'student') {
+      throw new HttpException('Solo los estudiantes pueden recibir regalos de bienvenida', HttpStatus.BAD_REQUEST);
+    }
+    if (user.hasCompletedOnboarding) {
+      throw new HttpException('El regalo de bienvenida ya fue reclamado', HttpStatus.BAD_REQUEST);
+    }
+
+    user.tumis = 5;
+    user.mullu = 100;
+    user.yachay = 0;
+    user.hasCompletedOnboarding = true;
+
+    await this._userRepo.save(user);
+
+    return {
+      statusCode: 200,
+      message: '¡Regalo de bienvenida reclamado exitosamente!',
+      data: {
+        tumis: user.tumis,
+        mullu: user.mullu,
+        yachay: user.yachay,
+        hasCompletedOnboarding: user.hasCompletedOnboarding,
+      }
     };
   }
 }

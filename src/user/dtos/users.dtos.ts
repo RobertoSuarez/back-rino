@@ -66,6 +66,10 @@ export class UserDto {
 
   @Expose()
   @ApiProperty()
+  readonly hasCompletedOnboarding: boolean;
+
+  @Expose()
+  @ApiProperty()
   readonly institutionId?: number;
 
   @Expose()

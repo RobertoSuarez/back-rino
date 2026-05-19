@@ -29,73 +29,97 @@ export class GameCronService {
   })
   async incrementStudentResources() {
     try {
-      this.logger.debug('Iniciando incremento de recursos para estudiantes...');
+      this.logger.debug('Iniciando incremento de recursos para estudiantes (Optimizado)...');
 
-      // Obtener todos los estudiantes activos
-      const students = await this.userRepository.find({
-        where: {
-          typeUser: 'student',
-          status: 'active', // Solo estudiantes activos
-        },
-      });
+      const batchSize = 50; // Procesar en lotes controlados para no saturar la base de datos
+      let page = 0;
+      let hasMore = true;
+      let totalProcessed = 0;
+      let successful = 0;
+      let failed = 0;
 
-      if (students.length === 0) {
-        this.logger.debug('No hay estudiantes activos para incrementar recursos');
-        return;
+      while (hasMore) {
+        const students = await this.userRepository.find({
+          where: {
+            typeUser: 'student',
+            status: 'active',
+            hasCompletedOnboarding: true,
+          },
+          take: batchSize,
+          skip: page * batchSize,
+          order: { id: 'ASC' }, // Garantiza orden consistente al paginar
+        });
+
+        if (students.length === 0) {
+          hasMore = false;
+          break;
+        }
+
+        this.logger.log(`Procesando lote ${page + 1} (${students.length} estudiantes)`);
+
+        const results = await Promise.allSettled(
+          students.map(async (student) => {
+            try {
+              // 1. Incrementar Tumis (1 por hora) - SOLO si tiene menos de 15
+              if (student.tumis < 15) {
+                await this.transactionsService.createTransaction({
+                  userId: student.id,
+                  resourceType: ResourceType.TUMIS,
+                  transactionType: TransactionType.BONUS,
+                  reason: TransactionReason.DAILY_REFRESH,
+                  amount: 1,
+                  description: 'Incremento automático por hora',
+                });
+              }
+
+              // 2. Incrementar Mullu (1 por hora)
+              await this.transactionsService.createTransaction({
+                userId: student.id,
+                resourceType: ResourceType.MULLU,
+                transactionType: TransactionType.BONUS,
+                reason: TransactionReason.SUBSCRIPTION_REWARD,
+                amount: 1,
+                description: 'Incremento automático por hora',
+              });
+
+              // 3. Incrementar Yachay (1 por hora)
+              await this.transactionsService.createTransaction({
+                userId: student.id,
+                resourceType: ResourceType.YACHAY,
+                transactionType: TransactionType.BONUS,
+                reason: TransactionReason.DAILY_LOGIN,
+                amount: 1,
+                description: 'Incremento automático por hora',
+              });
+
+              return { success: true, userId: student.id };
+            } catch (error) {
+              this.logger.error(
+                `Error al incrementar recursos para estudiante ${student.id}: ${error.message}`,
+              );
+              return { success: false, userId: student.id, error: error.message };
+            }
+          }),
+        );
+
+        results.forEach((r) => {
+          if (r.status === 'fulfilled' && r.value.success) {
+            successful++;
+          } else {
+            failed++;
+          }
+        });
+
+        totalProcessed += students.length;
+        page++;
+
+        if (students.length < batchSize) {
+          hasMore = false;
+        }
       }
 
-      this.logger.log(`Incrementando recursos para ${students.length} estudiantes`);
-
-      // Procesar cada estudiante
-      const results = await Promise.allSettled(
-        students.map(async (student) => {
-          try {
-            // 1. Incrementar Tumis (1 por hora)
-            await this.transactionsService.createTransaction({
-              userId: student.id,
-              resourceType: ResourceType.TUMIS,
-              transactionType: TransactionType.BONUS,
-              reason: TransactionReason.DAILY_REFRESH,
-              amount: 1,
-              description: 'Incremento automático por hora',
-            });
-
-            // 2. Incrementar Mullu (1 por hora)
-            await this.transactionsService.createTransaction({
-              userId: student.id,
-              resourceType: ResourceType.MULLU,
-              transactionType: TransactionType.BONUS,
-              reason: TransactionReason.SUBSCRIPTION_REWARD,
-              amount: 1,
-              description: 'Incremento automático por hora',
-            });
-
-            // 3. Incrementar Yachay (1 por hora)
-            await this.transactionsService.createTransaction({
-              userId: student.id,
-              resourceType: ResourceType.YACHAY,
-              transactionType: TransactionType.BONUS,
-              reason: TransactionReason.DAILY_LOGIN,
-              amount: 1,
-              description: 'Incremento automático por hora',
-            });
-
-            return { success: true, userId: student.id };
-          } catch (error) {
-            this.logger.error(
-              `Error al incrementar recursos para estudiante ${student.id}: ${error.message}`,
-            );
-            return { success: false, userId: student.id, error: error.message };
-          }
-        }),
-      );
-
-      // Contar éxitos y fallos
-      const successful = results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
-      const failed = results.filter((r) => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success)).length;
-
       this.logger.log(
-        `Incremento completado: ${successful} exitosos, ${failed} fallidos`,
+        `Incremento completado. Total procesados: ${totalProcessed}. Exitosos: ${successful}, Fallidos: ${failed}`,
       );
     } catch (error) {
       this.logger.error(`Error en cron job de incremento de recursos: ${error.message}`, error.stack);

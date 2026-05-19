@@ -86,6 +86,9 @@ export class User extends BaseTable {
   @Column({ default: 0 })
   loginAmount: number;
 
+  @Column({ type: 'boolean', default: false })
+  hasCompletedOnboarding: boolean;
+
   @OneToMany(() => ResetPassword, (resetPassword) => resetPassword.user)
   resetPasswords: ResetPassword[];
 
