@@ -148,6 +148,7 @@ export class ActivityService {
           phishingImageUrl: e.phishingImageUrl || '',
           optionsMatchPairsLeft: e.optionsMatchPairsLeft || [],
           optionsMatchPairsRight: (e.optionsMatchPairsRight || []).sort(this.aleatorio),
+          answerMatchPairs: e.answerMatchPairs || [],
         };
       }),
     };

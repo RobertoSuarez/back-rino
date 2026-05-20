@@ -359,7 +359,7 @@ export class LearningPathService {
   async getMySubscriptions(userId: number): Promise<any[]> {
     const subscriptions = await this.subscriptionRepo
       .createQueryBuilder('subscription')
-      .leftJoinAndSelect('subscription.learningPath', 'learningPath')
+      .innerJoinAndSelect('subscription.learningPath', 'learningPath')
       .leftJoinAndSelect('learningPath.createdBy', 'createdBy')
       .leftJoinAndSelect('learningPath.courses', 'courses', 'courses.deletedAt IS NULL')
       .where('subscription.student.id = :userId', { userId })
