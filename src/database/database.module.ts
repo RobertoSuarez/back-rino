@@ -14,31 +14,31 @@ import * as path from 'path';
         const sslEnv = configService.get<string>('DATABASE_SSL');
         const isProd = configService.get('NODE_ENV') === 'production';
         const sslOption = typeof sslEnv === 'string' ? sslEnv === 'true' : isProd;
-        
+
         // Obtener la ruta del certificado CA desde variables de entorno
         const caCertPath = configService.get<string>('DATABASE_CA_CERT_PATH');
         const caCertContent = configService.get<string>('DATABASE_CA_CERT');
-        
+
         // Configuración SSL
         let sslConfig: any = sslOption;
-        
+
         // Si se requiere SSL con configuración específica
         if (sslOption) {
           sslConfig = {
             rejectUnauthorized: configService.get<string>('DATABASE_REJECT_UNAUTHORIZED') !== 'false',
           };
-          
+
           // Si hay contenido del certificado directamente en las variables de entorno
           if (caCertContent) {
             sslConfig.ca = caCertContent;
-          } 
+          }
           // Si hay una ruta al archivo del certificado
           else if (caCertPath && fs.existsSync(caCertPath)) {
             sslConfig.ca = fs.readFileSync(caCertPath).toString();
           }
         }
-        
-        
+
+
         const config: TypeOrmModuleOptions = {
           type: 'postgres',
           host: configService.get('DATABASE_HOST'),
@@ -53,18 +53,23 @@ import * as path from 'path';
           ssl: sslConfig,
           logging: configService.get<string>('DATABASE_LOGGING') === 'true', // Activar logs en desarrollo
           autoLoadEntities: true, // Cargar automáticamente las entidades registradas en los módulos
+          extra: {
+            max: 5, // Limita el número de conexiones en el pool
+            idleTimeoutMillis: 30000, // Cierra conexiones inactivas tras 30 segundos
+            connectionTimeoutMillis: 2000, // Timeout rápido para obtener conexiones
+          },
         };
-        
+
         // Ocultar la contraseña en los logs
-        const logConfig = {...config};
+        const logConfig = { ...config };
         if (logConfig.password) {
           logConfig.password = '********';
         }
-        
+
         return config;
       },
     }),
   ],
   exports: [TypeOrmModule],
 })
-export class DatabaseModule {}
+export class DatabaseModule { }

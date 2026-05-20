@@ -78,6 +78,7 @@ export class AuthService {
         status: user.status,
         typeUser: user.typeUser,
         requiredUpdate: user.requiredUpdate,
+        hasCompletedOnboarding: user.hasCompletedOnboarding,
       },
       firstLogin: user.loginAmount === 1,
       accessToken: accessToken,

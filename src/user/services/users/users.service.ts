@@ -615,8 +615,8 @@ export class UsersService {
       throw new HttpException('El regalo de bienvenida ya fue reclamado', HttpStatus.BAD_REQUEST);
     }
 
-    user.tumis = 5;
-    user.mullu = 100;
+    user.tumis = 15;
+    user.mullu = 1000;
     user.yachay = 0;
     user.hasCompletedOnboarding = true;
 
