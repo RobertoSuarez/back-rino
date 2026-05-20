@@ -369,6 +369,10 @@ export class ExercisesService {
       throw new BadRequestException('Usuario no encontrado');
     }
 
+    if (user.typeUser === 'admin' || user.typeUser === 'teacher') {
+      return;
+    }
+
     if (user.tumis <= 0) {
       throw new BadRequestException(
         'No tienes corazones (tumis) suficientes para responder este ejercicio.',
@@ -614,6 +618,11 @@ export class ExercisesService {
     exerciseId: number,
   ): Promise<void> {
     if (result.qualification < 7 || answer.isPreview) {
+      return;
+    }
+
+    const user = await this.userRepo.findOneBy({ id: answer.userId });
+    if (user && (user.typeUser === 'admin' || user.typeUser === 'teacher')) {
       return;
     }
 

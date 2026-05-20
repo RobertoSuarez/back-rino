@@ -77,11 +77,14 @@ export class UsersController {
   @ApiQuery({ name: 'limit', required: false, description: 'Límite de resultados por página' })
   @ApiQuery({ name: 'search', required: false, description: 'Término de búsqueda opcional' })
   async findAll(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
+    @Request() req,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
     @Query('search') search?: string,
   ) {
-    return await this._usersService.findAll(page, limit, search);
+    const pageNumber = parseInt(page as string, 10) || 1;
+    const limitNumber = parseInt(limit as string, 10) || 10;
+    return await this._usersService.findAll(pageNumber, limitNumber, search, req.user);
   }
   
   @Get(':id')

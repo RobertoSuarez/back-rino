@@ -243,17 +243,21 @@ export class UsersService {
     return user;
   }
   
-  async findAll(page: number = 1, limit: number = 10, search?: string): Promise<PaginatedUsersResponseDto> {
+  async findAll(page: number = 1, limit: number = 10, search?: string, currentUser?: any): Promise<PaginatedUsersResponseDto> {
     const skip = (page - 1) * limit;
     
     let queryBuilder = this._userRepo.createQueryBuilder('user')
       .leftJoinAndSelect('user.institution', 'institution');
+      
+    if (currentUser && currentUser.typeUser === 'teacher') {
+      queryBuilder = queryBuilder.andWhere('user.typeUser = :typeUser', { typeUser: 'student' });
+    }
     
     if (search) {
-      queryBuilder = queryBuilder
-        .where('user.firstName ILIKE :search', { search: `%${search}%` })
-        .orWhere('user.lastName ILIKE :search', { search: `%${search}%` })
-        .orWhere('user.email ILIKE :search', { search: `%${search}%` });
+      queryBuilder = queryBuilder.andWhere(
+        '(user.firstName ILIKE :search OR user.lastName ILIKE :search OR user.email ILIKE :search)',
+        { search: `%${search}%` }
+      );
     }
     
     const [users, total] = await queryBuilder

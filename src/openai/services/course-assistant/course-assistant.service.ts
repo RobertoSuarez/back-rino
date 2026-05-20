@@ -10,7 +10,7 @@ export class CourseAssistantService {
   constructor(
     private readonly geminiService: GeminiService,
     private readonly generateExercisesService: GenerateExercisesService,
-  ) {}
+  ) { }
 
   /**
    * Sugiere títulos para un curso basado en una idea o nombre inicial.
@@ -34,7 +34,7 @@ Ejemplo de salida: ["Título 1", "Título 2", "Título 3", "Título 4", "Título
       // Limpiar respuesta por si viene con markdown
       const cleanJson = response.replace(/```json|```/g, '').trim();
       const parsedTitles = JSON.parse(cleanJson);
-      
+
       if (Array.isArray(parsedTitles)) {
         return parsedTitles.map(title => {
           if (!title) return title;
@@ -54,7 +54,7 @@ Ejemplo de salida: ["Título 1", "Título 2", "Título 3", "Título 4", "Título
   async generateChapters(courseTitle: string) {
     // Usamos el método existente en GeminiService
     let chapters = await this.geminiService.suggestChapters(courseTitle, []);
-    
+
     if (Array.isArray(chapters)) {
       chapters = chapters.map(chapter => ({
         ...chapter,
@@ -62,7 +62,7 @@ Ejemplo de salida: ["Título 1", "Título 2", "Título 3", "Título 4", "Título
         description: chapter.description ? chapter.description.charAt(0).toUpperCase() + chapter.description.slice(1) : chapter.description
       }));
     }
-    
+
     return { chapters };
   }
 
@@ -91,7 +91,7 @@ Responde ÚNICAMENTE con un objeto JSON siguiendo esta estructura:
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       const cleanJson = jsonMatch ? jsonMatch[0] : response;
       const parsed = JSON.parse(cleanJson);
-      
+
       if (parsed && Array.isArray(parsed.temas)) {
         parsed.temas = parsed.temas.map(tema => ({
           ...tema,
@@ -113,12 +113,12 @@ Responde ÚNICAMENTE con un objeto JSON siguiendo esta estructura:
     // Aquí podríamos crear un bucle para generar múltiples ejercicios usando GenerateExercisesService
     const exercises = [];
     for (let i = 0; i < quantity; i++) {
-        const payload = {
-            prompt: `Genera un ejercicio sobre el tema: ${topicTitle}. Dificultad: ${difficulty}.`,
-            typeExercise: this.getRandomExerciseType(),
-        };
-        const exercise = await this.generateExercisesService.generateExercise(payload as any);
-        exercises.push(exercise);
+      const payload = {
+        prompt: `Genera un ejercicio sobre el tema: ${topicTitle}. Dificultad: ${difficulty}.`,
+        typeExercise: this.getRandomExerciseType(),
+      };
+      const exercise = await this.generateExercisesService.generateExercise(payload as any);
+      exercises.push(exercise);
     }
     return exercises;
   }
