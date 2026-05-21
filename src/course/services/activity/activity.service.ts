@@ -282,12 +282,14 @@ export class ActivityService {
       throw new Error('not found activity');
     }
 
-    // Recuperar todas las actividades del chapter.
-    const activitiesByChapter = await this.activityRepo.find({
-      where: {
-        tema: { chapter: { id: activity.tema.chapter.id } },
-      },
-    });
+    const activitiesByChapter = await this.activityRepo
+      .createQueryBuilder('activity')
+      .innerJoin('activity.tema', 'tema')
+      .innerJoin('activity.exercises', 'exercise', 'exercise.deletedAt IS NULL')
+      .where('tema.chapterId = :chapterId', { chapterId: activity.tema.chapter.id })
+      .andWhere('activity.deletedAt IS NULL')
+      .distinct(true)
+      .getMany();
 
     const progressActivitiesByChapter =
       await this.activityProgressUserRepo.find({
@@ -299,9 +301,9 @@ export class ActivityService {
       });
 
     const uniqueCompletedActivities = new Set(progressActivitiesByChapter.map(p => p.activity?.id || (p as any).activityId));
-    let progressChapter = Math.floor(
-      (uniqueCompletedActivities.size / activitiesByChapter.length) * 100,
-    );
+    let progressChapter = activitiesByChapter.length > 0
+      ? Math.floor((uniqueCompletedActivities.size / activitiesByChapter.length) * 100)
+      : 0;
     if (progressChapter > 100) progressChapter = 100;
 
     let chapterProgressUser = await this.chapterProgressRepo.findOne({
@@ -328,11 +330,15 @@ export class ActivityService {
   }
 
   async updateCourseProgress(userId: number, courseId: number) {
-    const activitiesByCourse = await this.activityRepo.find({
-      where: {
-        tema: { chapter: { course: { id: courseId } } },
-      },
-    });
+    const activitiesByCourse = await this.activityRepo
+      .createQueryBuilder('activity')
+      .innerJoin('activity.tema', 'tema')
+      .innerJoin('tema.chapter', 'chapter')
+      .innerJoin('activity.exercises', 'exercise', 'exercise.deletedAt IS NULL')
+      .where('chapter.courseId = :courseId', { courseId })
+      .andWhere('activity.deletedAt IS NULL')
+      .distinct(true)
+      .getMany();
 
     const progressActivitiesByCourse = await this.activityProgressUserRepo.find(
       {
@@ -345,9 +351,9 @@ export class ActivityService {
     );
 
     const uniqueCompletedActivities = new Set(progressActivitiesByCourse.map(p => p.activity?.id || (p as any).activityId));
-    let progressCourse = Math.floor(
-      (uniqueCompletedActivities.size / activitiesByCourse.length) * 100,
-    );
+    let progressCourse = activitiesByCourse.length > 0
+      ? Math.floor((uniqueCompletedActivities.size / activitiesByCourse.length) * 100)
+      : 0;
     if (progressCourse > 100) progressCourse = 100;
 
     let subscriptionCourse = await this.subscriptionRepo.findOne({

@@ -6,6 +6,9 @@ import { AdminDashboardController } from './controllers/admin-dashboard.controll
 import { AdminDashboardService } from './services/admin-dashboard.service';
 import { User } from '../database/entities/user.entity';
 import { Course } from '../database/entities/course.entity';
+import { Chapter } from '../database/entities/chapter.entity';
+import { Tema } from '../database/entities/tema.entity';
+import { Activity } from '../database/entities/activity.entity';
 import { LearningPath } from '../database/entities/learningPath.entity';
 import { LearningPathSubscription } from '../database/entities/learningPathSubscription.entity';
 
@@ -14,6 +17,9 @@ import { LearningPathSubscription } from '../database/entities/learningPathSubsc
     TypeOrmModule.forFeature([
       User,
       Course,
+      Chapter,
+      Tema,
+      Activity,
       LearningPath,
       LearningPathSubscription,
     ]),

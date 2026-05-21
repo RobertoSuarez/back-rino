@@ -3,6 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 import { User } from '../../database/entities/user.entity';
 import { Course } from '../../database/entities/course.entity';
+import { Chapter } from '../../database/entities/chapter.entity';
+import { Tema } from '../../database/entities/tema.entity';
+import { Activity } from '../../database/entities/activity.entity';
 import { LearningPath } from '../../database/entities/learningPath.entity';
 import { LearningPathSubscription } from '../../database/entities/learningPathSubscription.entity';
 import { DateTime } from 'luxon';
@@ -15,6 +18,12 @@ export class AdminDashboardService {
     private userRepo: Repository<User>,
     @InjectRepository(Course)
     private courseRepo: Repository<Course>,
+    @InjectRepository(Chapter)
+    private chapterRepo: Repository<Chapter>,
+    @InjectRepository(Tema)
+    private temaRepo: Repository<Tema>,
+    @InjectRepository(Activity)
+    private activityRepo: Repository<Activity>,
     @InjectRepository(LearningPath)
     private learningPathRepo: Repository<LearningPath>,
     @InjectRepository(LearningPathSubscription)
@@ -57,9 +66,9 @@ export class AdminDashboardService {
     const totalLearningPaths = await this.learningPathRepo.count({
       where: { deletedAt: IsNull() },
     });
-    const totalChapters = 0; // Placeholder - agregar cuando la entidad esté disponible
-    const totalTemas = 0; // Placeholder - agregar cuando la entidad esté disponible
-    const totalActivities = 0; // Placeholder - agregar cuando la entidad esté disponible
+    const totalChapters = await this.chapterRepo.count({ where: { deletedAt: IsNull() } });
+    const totalTemas = await this.temaRepo.count({ where: { deletedAt: IsNull() } });
+    const totalActivities = await this.activityRepo.count({ where: { deletedAt: IsNull() } });
 
     // Estadísticas de suscripciones
     const totalSubscriptions = await this.subscriptionRepo.count({

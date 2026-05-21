@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, IsNull } from 'typeorm';
 import { LearningPath } from '../../database/entities/learningPath.entity';
@@ -9,6 +9,8 @@ import { User } from '../../database/entities/user.entity';
 import { UpsertGradeDto, BulkGradeDto } from '../dtos/grade-book.dto';
 import { DateTime } from 'luxon';
 import { formatDateFrontend } from '../../common/constants';
+
+const PASSING_GRADE = 7;
 
 @Injectable()
 export class TeacherGradebookService {
@@ -98,7 +100,7 @@ export class TeacherGradebookService {
         const status =
           finalGrade === null
             ? 'not_graded'
-            : finalGrade >= 6
+            : finalGrade >= PASSING_GRADE
             ? 'approved'
             : 'failed';
 
@@ -199,8 +201,7 @@ export class TeacherGradebookService {
   // ─── 5. Bulk guardar notas finales ──────────────────────────────────────
   async bulkSaveGrades(dto: BulkGradeDto, teacherId: number): Promise<any> {
     if (!Array.isArray(dto.grades)) {
-      // Opcional: lanzar error o retornar vacío
-      return { saved: 0, message: 'No grades array provided' };
+      throw new BadRequestException('Debe enviar un arreglo grades con las calificaciones');
     }
     const results = await Promise.all(
       dto.grades.map((g) => this.upsertGrade(g, teacherId)),
@@ -231,30 +232,42 @@ export class TeacherGradebookService {
 
     pdfmake.setFonts(fonts);
 
+    const gradedCount = data.students.filter((s: any) => s.finalGrade !== null).length;
+    const approvedCount = data.students.filter((s: any) => s.status === 'approved').length;
+    const failedCount = data.students.filter((s: any) => s.status === 'failed').length;
+    const pendingCount = data.students.filter((s: any) => s.status === 'not_graded').length;
+
     const tableBody = [
       [
         { text: '#', bold: true, fillColor: '#1cb0f6', color: 'white' },
         { text: 'Estudiante', bold: true, fillColor: '#1cb0f6', color: 'white' },
-        { text: 'Email', bold: true, fillColor: '#1cb0f6', color: 'white' },
+        { text: 'Suscrito', bold: true, fillColor: '#1cb0f6', color: 'white' },
         { text: 'Nota Sug.', bold: true, fillColor: '#1cb0f6', color: 'white' },
         { text: 'Nota Final', bold: true, fillColor: '#1cb0f6', color: 'white' },
         { text: 'Estado', bold: true, fillColor: '#1cb0f6', color: 'white' },
+        { text: 'Observaciones', bold: true, fillColor: '#1cb0f6', color: 'white' },
       ],
       ...data.students.map((s: any, i: number) => [
         { text: String(i + 1), alignment: 'center' },
-        { text: `${s.student.firstName} ${s.student.lastName}` },
-        { text: s.student.email, fontSize: 9 },
+        { text: `${s.student.firstName} ${s.student.lastName}\n${s.student.email}`, fontSize: 9 },
+        { text: s.subscribedAt, alignment: 'center', fontSize: 9 },
         { text: s.suggestedGrade !== null ? String(s.suggestedGrade) : '—', alignment: 'center' },
         {
           text: s.finalGrade !== null ? String(s.finalGrade) : '—',
           alignment: 'center',
           bold: true,
-          color: s.finalGrade === null ? '#afafaf' : s.finalGrade >= 6 ? '#46a302' : '#ff4b4b',
+          color: s.finalGrade === null ? '#afafaf' : s.finalGrade >= PASSING_GRADE ? '#46a302' : '#ff4b4b',
         },
         {
           text: s.status === 'approved' ? '✓ Aprobado' : s.status === 'failed' ? '✗ Reprobado' : '— Pendiente',
           alignment: 'center',
           color: s.status === 'approved' ? '#46a302' : s.status === 'failed' ? '#ff4b4b' : '#afafaf',
+        },
+        {
+          text: [
+            { text: s.observations || '—', fontSize: 8 },
+            s.gradedAt ? { text: `\n${s.gradedAt}${s.gradedBy ? ` · ${s.gradedBy}` : ''}`, fontSize: 7, color: '#6b7280' } : { text: '' },
+          ],
         },
       ]),
     ];
@@ -284,6 +297,7 @@ export class TeacherGradebookService {
         {
           columns: [
             { text: [{ text: 'Total estudiantes: ', bold: true }, String(data.totalStudents)] },
+            { text: [{ text: 'Calificados: ', bold: true }, String(gradedCount)] },
             {
               text: [{ text: 'Generado: ', bold: true }, DateTime.now().toFormat(formatDateFrontend)],
               alignment: 'right',
@@ -292,7 +306,15 @@ export class TeacherGradebookService {
           margin: [0, 0, 0, 16],
         },
         {
-          table: { headerRows: 1, widths: [30, '*', '*', 55, 55, 70], body: tableBody },
+          columns: [
+            { text: [{ text: 'Aprobados: ', bold: true }, String(approvedCount)] },
+            { text: [{ text: 'Reprobados: ', bold: true }, String(failedCount)] },
+            { text: [{ text: 'Pendientes: ', bold: true }, String(pendingCount)] },
+          ],
+          margin: [0, 0, 0, 14],
+        },
+        {
+          table: { headerRows: 1, widths: [28, '*', 58, 52, 52, 66, '*'], body: tableBody },
           layout: 'lightHorizontalLines',
         },
         { text: '', margin: [0, 16, 0, 0] },
@@ -336,6 +358,9 @@ export class TeacherGradebookService {
       { header: 'Suscrito el', key: 'sub', width: 16 },
       { header: 'Nota Sugerida', key: 'suggested', width: 16 },
       { header: 'Nota Final', key: 'final', width: 14 },
+      { header: 'Diferencia', key: 'diff', width: 12 },
+      { header: 'Calificado el', key: 'gradedAt', width: 18 },
+      { header: 'Calificado por', key: 'gradedBy', width: 24 },
       { header: 'Observaciones', key: 'obs', width: 30 },
       { header: 'Estado', key: 'status', width: 14 },
     ];
@@ -355,6 +380,11 @@ export class TeacherGradebookService {
         sub: s.subscribedAt,
         suggested: s.suggestedGrade ?? '—',
         final: s.finalGrade ?? '—',
+        diff: s.finalGrade !== null && s.suggestedGrade !== null
+          ? (Number(s.finalGrade) - Number(s.suggestedGrade)).toFixed(1)
+          : '—',
+        gradedAt: s.gradedAt ?? '—',
+        gradedBy: s.gradedBy ?? '—',
         obs: s.observations ?? '',
         status: s.status === 'approved' ? 'Aprobado' : s.status === 'failed' ? 'Reprobado' : 'Pendiente',
       });
@@ -365,16 +395,18 @@ export class TeacherGradebookService {
         finalCell.fill = {
           type: 'pattern',
           pattern: 'solid',
-          fgColor: { argb: s.finalGrade >= 6 ? 'FFD7FFB8' : 'FFFFDFE0' },
+          fgColor: { argb: s.finalGrade >= PASSING_GRADE ? 'FFD7FFB8' : 'FFFFDFE0' },
         };
         finalCell.font = {
           bold: true,
-          color: { argb: s.finalGrade >= 6 ? 'FF46A302' : 'FFFF4B4B' },
+          color: { argb: s.finalGrade >= PASSING_GRADE ? 'FF46A302' : 'FFFF4B4B' },
         };
       }
       finalCell.alignment = { horizontal: 'center' };
       row.getCell('num').alignment = { horizontal: 'center' };
       row.getCell('suggested').alignment = { horizontal: 'center' };
+      row.getCell('diff').alignment = { horizontal: 'center' };
+      row.getCell('gradedAt').alignment = { horizontal: 'center' };
     });
 
     // ── Hoja 2: Resumen ──
@@ -394,6 +426,8 @@ export class TeacherGradebookService {
       { metric: 'Código', value: data.path.code },
       { metric: 'Total estudiantes', value: data.totalStudents },
       { metric: 'Calificados', value: data.gradedStudents },
+      { metric: 'Aprobados', value: s.approved ?? 0 },
+      { metric: 'Reprobados', value: s.failed ?? 0 },
       { metric: 'Promedio de la clase', value: s.average ?? '—' },
       { metric: 'Nota más alta', value: s.max ?? '—' },
       { metric: 'Nota más baja', value: s.min ?? '—' },
@@ -406,7 +440,7 @@ export class TeacherGradebookService {
 
   // ─── Helpers privados ────────────────────────────────────────────────────
 
-  /** Obtiene los IDs de todas las actividades de los cursos de una ruta */
+  /** Obtiene los IDs de actividades evaluables de los cursos de una ruta */
   private async getPathActivityIds(pathId: number): Promise<number[]> {
     const rows: { activity_id: number }[] = await this.progressRepo.manager.query(
       `SELECT a.id AS activity_id
@@ -414,16 +448,19 @@ export class TeacherGradebookService {
        INNER JOIN tema t ON a."temaId" = t.id
        INNER JOIN chapter ch ON t."chapterId" = ch.id
        INNER JOIN learning_path_courses lpc ON lpc.course_id = ch."courseId"
+       INNER JOIN exercise e ON e."activityId" = a.id
        WHERE lpc.learning_path_id = $1
          AND a."deletedAt" IS NULL
          AND t."deletedAt" IS NULL
-         AND ch."deletedAt" IS NULL`,
+         AND ch."deletedAt" IS NULL
+         AND e."deletedAt" IS NULL
+       GROUP BY a.id`,
       [pathId],
     );
     return rows.map((r) => r.activity_id);
   }
 
-  /** Nota sugerida = SUM(accuracy del mejor intento) / totalActividades / 10 */
+  /** Nota sugerida = SUM(accuracy del mejor intento) / actividades evaluables / 10 */
   private async calculateSuggestedGrade(
     studentId: number,
     activityIds: number[],
@@ -452,7 +489,7 @@ export class TeacherGradebookService {
     const avg = parseFloat((valid.reduce((a, b) => a + b, 0) / valid.length).toFixed(2));
     const max = parseFloat(Math.max(...valid).toFixed(2));
     const min = parseFloat(Math.min(...valid).toFixed(2));
-    const approved = valid.filter((g) => g >= 6).length;
+    const approved = valid.filter((g) => g >= PASSING_GRADE).length;
     const passRate = parseFloat(((approved / valid.length) * 100).toFixed(1));
     return { average: avg, max, min, approved, failed: valid.length - approved, passRate };
   }

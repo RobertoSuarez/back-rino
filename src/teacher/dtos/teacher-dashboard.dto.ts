@@ -14,7 +14,21 @@ export class TeacherDashboardDto {
   activeSubscriptions: number;
 
   @ApiProperty()
-  averageProgress: number;
+  averageAccuracy: number | null;
+
+  @ApiProperty()
+  averageScore: number | null;
+
+  @ApiProperty()
+  studentsAtRiskCount: number;
+
+  @ApiProperty()
+  lowPerformanceStudents: Array<{
+    id: number;
+    name: string;
+    avatar: string;
+    averageAccuracy: number;
+  }>;
 
   @ApiProperty()
   recentStudents: Array<{

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull, In, Not } from 'typeorm';
+import { Repository, IsNull, In } from 'typeorm';
 import { LearningPath } from '../../database/entities/learningPath.entity';
 import { LearningPathSubscription } from '../../database/entities/learningPathSubscription.entity';
 import { Course } from '../../database/entities/course.entity';
@@ -11,6 +11,17 @@ import { Tema } from '../../database/entities/tema.entity';
 import { User } from '../../database/entities/user.entity';
 import { DateTime } from 'luxon';
 import { formatDateFrontend } from '../../common/constants';
+
+const RISK_THRESHOLD = 70;
+
+type StudentPerformance = {
+  globalAccuracy: number | null;
+  averageScore: number | null;
+  globalSuggestedGrade: number | null;
+  hasEvaluableProgress: boolean;
+  evaluableActivitiesCount: number;
+  completedEvaluableActivitiesCount: number;
+};
 
 @Injectable()
 export class TeacherDashboardService {
@@ -34,13 +45,11 @@ export class TeacherDashboardService {
   ) {}
 
   async getDashboardStats(teacherId: number): Promise<any> {
-    // ... (código existente de rutas y cursos) ...
     const teacherPaths = await this.learningPathRepo.find({
       where: { createdBy: { id: teacherId }, deletedAt: IsNull() },
       relations: ['subscriptions', 'subscriptions.student', 'courses'],
     });
 
-    const pathIds = teacherPaths.map(p => p.id);
     const totalLearningPaths = teacherPaths.length;
 
     const totalCourses = await this.courseRepo.count({
@@ -58,6 +67,7 @@ export class TeacherDashboardService {
 
     const uniqueStudentIds = new Set(activeSubscriptions.map(sub => sub.student.id));
     const totalStudents = uniqueStudentIds.size;
+    const performanceMap = await this.getPerformanceByStudent(activeSubscriptions);
 
     const recentStudents = activeSubscriptions
       .sort((a, b) => new Date(b.subscribedAt).getTime() - new Date(a.subscribedAt).getTime())
@@ -113,73 +123,40 @@ export class TeacherDashboardService {
         count: p.studentsCount,
       }));
 
-    // --- NUEVAS MÉTRICAS DE ACTIVIDAD ---
-    let averageAccuracy = 0;
-    let averageScore = 0;
-    let studentsAtRiskCount = 0;
-    let lowPerformanceStudents = [];
+    const performances = Array.from(performanceMap.values()).filter(p => p.hasEvaluableProgress);
+    const averageAccuracy = performances.length > 0
+      ? this.round1(performances.reduce((sum, p) => sum + (p.globalAccuracy ?? 0), 0) / performances.length)
+      : null;
+    const averageScore = performances.length > 0
+      ? this.round1(performances.reduce((sum, p) => sum + (p.averageScore ?? 0), 0) / performances.length)
+      : null;
 
-    if (uniqueStudentIds.size > 0) {
-      const studentIdsArray = Array.from(uniqueStudentIds);
-
-      // 1. Promedios Globales (Accuracy y Score)
-      const { avgAccuracy, avgScore } = await this.activityProgressRepo
-        .createQueryBuilder('apu')
-        .select('AVG(apu.accuracy)', 'avgAccuracy')
-        .addSelect('AVG(apu.score)', 'avgScore')
-        .where('apu.userId IN (:...ids)', { ids: studentIdsArray })
-        .getRawOne();
-      
-      averageAccuracy = avgAccuracy ? parseFloat(Number(avgAccuracy).toFixed(1)) : 0;
-      averageScore = avgScore ? parseFloat(Number(avgScore).toFixed(1)) : 0;
-
-      // 2. Estudiantes en Riesgo (Accuracy < 70)
-      // Agrupamos por estudiante para ver su promedio individual
-      const studentsPerformance = await this.activityProgressRepo
-        .createQueryBuilder('apu')
-        .select('apu.userId', 'studentId')
-        .addSelect('AVG(apu.accuracy)', 'avgAcc')
-        .where('apu.userId IN (:...ids)', { ids: studentIdsArray })
-        .groupBy('apu.userId')
-        .having('AVG(apu.accuracy) < :umbral', { umbral: 70 }) 
-        .getRawMany();
-        
-      studentsAtRiskCount = studentsPerformance.length;
-
-      // Obtener detalles de los estudiantes en riesgo (top 5 más críticos)
-      if (studentsAtRiskCount > 0) {
-        const riskyStudentIds = studentsPerformance
-          .sort((a, b) => a.avgAcc - b.avgAcc)
-          .slice(0, 5)
-          .map(s => s.studentId);
-          
-        // Buscamos sus datos en la lista de suscripciones que ya tenemos en memoria
-        // para evitar otra query a UsersRepo
-        lowPerformanceStudents = riskyStudentIds.map(id => {
-          const sub = activeSubscriptions.find(s => s.student.id === id);
-          const performance = studentsPerformance.find(p => p.studentId === id);
-          if (sub) {
-            return {
-              id: sub.student.id,
-              name: `${sub.student.firstName} ${sub.student.lastName}`,
-              avatar: sub.student.urlAvatar,
-              averageAccuracy: parseFloat(Number(performance.avgAcc).toFixed(1))
-            };
-          }
+    const riskyStudents = Array.from(uniqueStudentIds)
+      .map((id) => {
+        const sub = activeSubscriptions.find(s => s.student.id === id);
+        const performance = performanceMap.get(id);
+        if (!sub || !performance?.hasEvaluableProgress || performance.globalAccuracy === null || performance.globalAccuracy >= RISK_THRESHOLD) {
           return null;
-        }).filter(s => s !== null);
-      }
-    }
+        }
+        return {
+          id: sub.student.id,
+          name: `${sub.student.firstName} ${sub.student.lastName}`,
+          avatar: sub.student.urlAvatar,
+          averageAccuracy: performance.globalAccuracy,
+        };
+      })
+      .filter(Boolean)
+      .sort((a: any, b: any) => a.averageAccuracy - b.averageAccuracy);
 
     return {
       totalStudents,
       totalLearningPaths,
       totalCourses,
       activeSubscriptions: activeSubscriptions.length,
-      averageAccuracy, // Reemplaza a Qualification
+      averageAccuracy,
       averageScore,
-      studentsAtRiskCount,
-      lowPerformanceStudents, // Lista de estudiantes en riesgo
+      studentsAtRiskCount: riskyStudents.length,
+      lowPerformanceStudents: riskyStudents.slice(0, 5),
       recentStudents,
       topLearningPaths,
       recentCourses: recentCoursesFormatted,
@@ -198,8 +175,8 @@ export class TeacherDashboardService {
       .orderBy('subscription.subscribedAt', 'DESC')
       .getMany();
 
-    // Agrupar por estudiante
     const studentsMap = new Map();
+    const performanceMap = await this.getPerformanceByStudent(subscriptions);
 
     subscriptions.forEach(sub => {
       const studentId = sub.student.id;
@@ -211,6 +188,11 @@ export class TeacherDashboardService {
           email: sub.student.email,
           urlAvatar: sub.student.urlAvatar,
           yachay: sub.student.yachay || 0,
+          globalAccuracy: performanceMap.get(studentId)?.globalAccuracy ?? null,
+          globalSuggestedGrade: performanceMap.get(studentId)?.globalSuggestedGrade ?? null,
+          hasEvaluableProgress: performanceMap.get(studentId)?.hasEvaluableProgress ?? false,
+          evaluableActivitiesCount: performanceMap.get(studentId)?.evaluableActivitiesCount ?? 0,
+          completedEvaluableActivitiesCount: performanceMap.get(studentId)?.completedEvaluableActivitiesCount ?? 0,
           paths: [],
         });
       }
@@ -257,6 +239,7 @@ export class TeacherDashboardService {
           .leftJoinAndSelect('course.chapters', 'chapter', 'chapter.deletedAt IS NULL')
           .leftJoinAndSelect('chapter.temas', 'tema', 'tema.deletedAt IS NULL')
           .leftJoinAndSelect('tema.activities', 'activity', 'activity.deletedAt IS NULL')
+          .leftJoinAndSelect('activity.exercises', 'exercise', 'exercise.deletedAt IS NULL')
           .where('lpc.learning_path_id = :pathId', { pathId: path.id })
           .andWhere('course.deletedAt IS NULL')
           .orderBy('chapter.index', 'ASC')
@@ -264,13 +247,14 @@ export class TeacherDashboardService {
           .addOrderBy('activity.index', 'ASC')
           .getMany();
 
-        // IDs de todas las actividades de la ruta
         const allActivityIds: number[] = [];
         for (const course of courses) {
           for (const chapter of (course.chapters || [])) {
             for (const tema of (chapter.temas || [])) {
               for (const activity of (tema.activities || [])) {
-                allActivityIds.push(activity.id);
+                if ((activity.exercises || []).length > 0) {
+                  allActivityIds.push(activity.id);
+                }
               }
             }
           }
@@ -295,7 +279,6 @@ export class TeacherDashboardService {
           });
         }
 
-        // Calcular nota sugerida de la ruta: SUM(accuracy) / totalActivities / 10
         const totalActivities = allActivityIds.length;
         let sumAccuracy = 0;
         progressMap.forEach((p) => { sumAccuracy += p.accuracy; });
@@ -315,18 +298,21 @@ export class TeacherDashboardService {
             temas: (chapter.temas || []).map((tema) => ({
               id: tema.id,
               title: tema.title,
-              activities: (tema.activities || []).map((activity) => {
+              activities: (tema.activities || [])
+                .filter((activity) => (activity.exercises || []).length > 0)
+                .map((activity) => {
                 const prog = progressMap.get(activity.id);
                 return {
                   id: activity.id,
                   title: activity.title,
+                  totalExercises: (activity.exercises || []).length,
                   done: !!prog,
                   accuracy: prog?.accuracy ?? null,
                   score: prog?.score ?? null,
                   progress: prog?.progress ?? 0,
                   status: !prog
                     ? 'not_started'
-                    : prog.accuracy >= 60
+                    : prog.accuracy >= RISK_THRESHOLD
                     ? 'passed'
                     : 'needs_improvement',
                 };
@@ -335,11 +321,10 @@ export class TeacherDashboardService {
           })),
         }));
 
-        // Actividades débiles: no iniciadas o accuracy < 60
         const weakActivities = allActivityIds
           .filter((id) => {
             const p = progressMap.get(id);
-            return !p || p.accuracy < 60;
+            return !p || p.accuracy < RISK_THRESHOLD;
           })
           .length;
 
@@ -368,18 +353,21 @@ export class TeacherDashboardService {
       )
     );
 
-    let globalAccuracy = 0;
+    let globalAccuracy: number | null = null;
+    let globalSuggestedGrade: number | null = null;
     if (allPathActivityIds.length > 0) {
-      const { avg } = await this.activityProgressRepo
+      const { avg, sum } = await this.activityProgressRepo
         .createQueryBuilder('apu')
         .select('AVG(apu.accuracy)', 'avg')
+        .addSelect('SUM(apu.accuracy)', 'sum')
         .where('apu.activity.id IN (:...ids)', { ids: allPathActivityIds })
         .andWhere('apu.user.id = :studentId', { studentId })
         .getRawOne();
-      globalAccuracy = avg ? parseFloat(Number(avg).toFixed(1)) : 0;
+      globalAccuracy = avg ? this.round1(Number(avg)) : null;
+      globalSuggestedGrade = sum
+        ? parseFloat((Number(sum) / allPathActivityIds.length / 10).toFixed(2))
+        : 0;
     }
-
-    const globalSuggestedGrade = parseFloat((globalAccuracy / 10).toFixed(2));
 
     return {
       student: {
@@ -394,5 +382,119 @@ export class TeacherDashboardService {
       globalSuggestedGrade,
       paths: pathsDetail,
     };
+  }
+
+  private async getPerformanceByStudent(
+    subscriptions: LearningPathSubscription[],
+  ): Promise<Map<number, StudentPerformance>> {
+    const studentActivityIds = await this.getEvaluableActivityIdsByStudent(subscriptions);
+    const studentIds = Array.from(studentActivityIds.keys());
+    const allActivityIds = Array.from(
+      new Set(Array.from(studentActivityIds.values()).flatMap((ids) => Array.from(ids))),
+    );
+
+    const result = new Map<number, StudentPerformance>();
+    studentActivityIds.forEach((activityIds, studentId) => {
+      result.set(studentId, {
+        globalAccuracy: null,
+        averageScore: null,
+        globalSuggestedGrade: null,
+        hasEvaluableProgress: false,
+        evaluableActivitiesCount: activityIds.size,
+        completedEvaluableActivitiesCount: 0,
+      });
+    });
+
+    if (studentIds.length === 0 || allActivityIds.length === 0) {
+      return result;
+    }
+
+    const progresses = await this.activityProgressRepo.find({
+      where: {
+        user: { id: In(studentIds) },
+        activity: { id: In(allActivityIds) },
+      },
+      relations: ['user', 'activity'],
+    });
+
+    const accum = new Map<number, { sumAccuracy: number; sumScore: number; count: number }>();
+    progresses.forEach((progress) => {
+      const studentId = progress.user?.id;
+      const activityId = progress.activity?.id;
+      if (!studentId || !activityId || !studentActivityIds.get(studentId)?.has(activityId)) {
+        return;
+      }
+      const current = accum.get(studentId) || { sumAccuracy: 0, sumScore: 0, count: 0 };
+      current.sumAccuracy += progress.accuracy ?? 0;
+      current.sumScore += progress.score ?? 0;
+      current.count += 1;
+      accum.set(studentId, current);
+    });
+
+    accum.forEach((value, studentId) => {
+      const base = result.get(studentId);
+      if (!base) return;
+      base.completedEvaluableActivitiesCount = value.count;
+      base.hasEvaluableProgress = value.count > 0;
+      base.globalAccuracy = value.count > 0 ? this.round1(value.sumAccuracy / value.count) : null;
+      base.averageScore = value.count > 0 ? this.round1(value.sumScore / value.count) : null;
+      base.globalSuggestedGrade = base.evaluableActivitiesCount > 0
+        ? parseFloat((value.sumAccuracy / base.evaluableActivitiesCount / 10).toFixed(2))
+        : null;
+    });
+
+    return result;
+  }
+
+  private async getEvaluableActivityIdsByStudent(
+    subscriptions: LearningPathSubscription[],
+  ): Promise<Map<number, Set<number>>> {
+    const pathIds = Array.from(new Set(subscriptions.map((sub) => sub.learningPath.id)));
+    const rows = await this.getEvaluableActivityRowsByPathIds(pathIds);
+    const activityIdsByPath = new Map<number, number[]>();
+    rows.forEach((row) => {
+      const pathId = Number(row.path_id);
+      const activityId = Number(row.activity_id);
+      activityIdsByPath.set(pathId, [...(activityIdsByPath.get(pathId) || []), activityId]);
+    });
+
+    const studentActivityIds = new Map<number, Set<number>>();
+    subscriptions.forEach((sub) => {
+      const studentId = sub.student.id;
+      if (!studentActivityIds.has(studentId)) {
+        studentActivityIds.set(studentId, new Set<number>());
+      }
+      (activityIdsByPath.get(sub.learningPath.id) || []).forEach((activityId) => {
+        studentActivityIds.get(studentId)!.add(activityId);
+      });
+    });
+    return studentActivityIds;
+  }
+
+  private async getEvaluableActivityRowsByPathIds(
+    pathIds: number[],
+  ): Promise<Array<{ path_id: number; activity_id: number }>> {
+    if (pathIds.length === 0) return [];
+    const placeholders = pathIds.map((_, index) => `$${index + 1}`).join(', ');
+    return this.activityRepo.manager.query(
+      `SELECT DISTINCT lpc.learning_path_id AS path_id, a.id AS activity_id
+       FROM learning_path_courses lpc
+       INNER JOIN course c ON c.id = lpc.course_id
+       INNER JOIN chapter ch ON ch."courseId" = c.id
+       INNER JOIN tema t ON t."chapterId" = ch.id
+       INNER JOIN activity a ON a."temaId" = t.id
+       INNER JOIN exercise e ON e."activityId" = a.id
+       WHERE lpc.learning_path_id IN (${placeholders})
+         AND c."deletedAt" IS NULL
+         AND ch."deletedAt" IS NULL
+         AND t."deletedAt" IS NULL
+         AND a."deletedAt" IS NULL
+         AND e."deletedAt" IS NULL`,
+      pathIds,
+    );
+  }
+
+  private round1(value: number): number {
+    return parseFloat(Number(value).toFixed(1));
   }
 }
