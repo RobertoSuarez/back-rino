@@ -1,4 +1,4 @@
-import { Controller, Get, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Request, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { TeacherDashboardService } from '../services/teacher-dashboard.service';
 import { AuthGuard } from '../../user/guards/auth/auth.guard';
@@ -27,5 +27,17 @@ export class TeacherDashboardController {
   async getStudentsList(@Request() req) {
     const { id: teacherId } = req.user;
     return await this.dashboardService.getStudentsList(teacherId);
+  }
+
+  @ApiOperation({ summary: 'Obtiene el rendimiento detallado de un estudiante (por actividad)' })
+  @UseGuards(RolesGuard)
+  @Roles('teacher')
+  @Get('students/:studentId')
+  async getStudentDetail(
+    @Request() req,
+    @Param('studentId', ParseIntPipe) studentId: number,
+  ) {
+    const { id: teacherId } = req.user;
+    return await this.dashboardService.getStudentDetail(teacherId, studentId);
   }
 }

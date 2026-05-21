@@ -234,9 +234,10 @@ export class LearningPathService {
     const today = DateTime.now().toFormat('yyyyMMdd');
     const prefix = `LP-${today}`;
     
-    // Buscar el último código generado hoy
+    // Buscar el último código generado hoy (incluyendo eliminados lógicamente)
     const lastPath = await this.learningPathRepo
       .createQueryBuilder('learningPath')
+      .withDeleted()
       .where('learningPath.code LIKE :prefix', { prefix: `${prefix}%` })
       .orderBy('learningPath.code', 'DESC')
       .getOne();
