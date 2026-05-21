@@ -133,7 +133,7 @@ export class GeminiService {
     if (this.isInappropriateContent(title)) {
       throw new Error('No es posible generar contenido con ese título. Por favor, utiliza un título apropiado para un curso de ciberseguridad.');
     }
-    const prompt = `Eres un experto en educación de ciberseguridad para niños y adolescentes (12-14 años). 
+    const prompt = `Eres un experto en educación de ciberseguridad para niños y adolescentes (12-14 años).
 Genera una descripción detallada y atractiva para un curso de ciberseguridad titulado "${title}" en la plataforma Cyber Imperium.
 
 OBJETIVO: El curso tiene un enfoque PREVENTIVO y EDUCATIVO. Si el título trata temas sensibles (como acoso, riesgos en línea o protección personal), la descripción debe enfocarse en el empoderamiento, la prevención y las estrategias de seguridad, evitando lenguaje gráfico o alarmista.
@@ -164,7 +164,7 @@ INSTRUCCIONES:
     courseDescription: string,
   ): Promise<string> {
     const prompt = `Eres un educador de ciberseguridad creativo para estudiantes de 12-14 años.
-Genera una descripción concisa y clara para un capítulo titulado "${chapterTitle}" 
+Genera una descripción concisa y clara para un capítulo titulado "${chapterTitle}"
 que forma parte del curso de ciberseguridad "${courseTitle}" en Cyber Imperium.
 
 Contexto del curso: "${courseDescription}"
@@ -194,7 +194,7 @@ INSTRUCCIONES:
   ): Promise<{ shortDescription: string; theory: string }> {
     // Generar descripción corta
     const shortDescPrompt = `Eres un educador de ciberseguridad para niños de 12-14 años.
-Genera una descripción breve (máximo 50 palabras) para un tema de ciberseguridad titulado "${temaTitle}" 
+Genera una descripción breve (máximo 50 palabras) para un tema de ciberseguridad titulado "${temaTitle}"
 que forma parte del capítulo "${chapterTitle}" en el curso "${courseTitle}" de Cyber Imperium.
 
 La descripción debe:
@@ -206,7 +206,7 @@ La descripción debe:
 
     // Generar teoría completa
     const theoryPrompt = `Eres un profesor de ciberseguridad entusiasta que crea contenido educativo para estudiantes de 12-14 años.
-Genera contenido educativo completo y detallado para un tema titulado "${temaTitle}" 
+Genera contenido educativo completo y detallado para un tema titulado "${temaTitle}"
 que forma parte del capítulo "${chapterTitle}" en el curso "${courseTitle}" de Cyber Imperium.
 
 El contenido debe incluir:
@@ -248,29 +248,29 @@ INSTRUCCIONES IMPORTANTES:
       throw new Error('❌ No es posible generar contenido con esa solicitud. Por favor, utiliza un prompt apropiado relacionado con ciberseguridad y seguridad digital. Recuerda que Cyber Imperium es una plataforma educativa para estudiantes de 12-14 años.');
     }
 
-    const theoryPrompt = `Eres Amauta, un profesor de ciberseguridad creativo de la plataforma Cyber Imperium. Creas contenido educativo para estudiantes ecuatorianos de 12 a 14 años (Educación General Básica Superior).
+  const theoryPrompt = `Eres Amauta, un profesor de ciberseguridad creativo de la plataforma Cyber Imperium. Creas contenido educativo para estudiantes ecuatorianos de 12 a 14 años (Educación General Básica Superior).
 
 Tu misión es educar sobre prevención y seguridad digital. Si el tema es sensible (acoso, privacidad, riesgos en línea), trátalo con seriedad pero de forma constructiva: enfócate en cómo protegerse, a quién acudir y qué herramientas usar. Nunca generes contenido que promueva actos dañinos.
 
-CONTEXTO:
+Contexto:
 - Tema: ${temaTitle}
 - Capítulo: ${chapterTitle}
 - Curso: ${courseTitle}
 - Plataforma: Cyber Imperium
 
-SOLICITUD DEL USUARIO:
+Solicitud del usuario:
 ${prompt}
 
-REGLAS DE EXTENSIÓN (muy importantes):
+Reglas de extensión (muy importantes):
 - Extensión total: entre 250 y 300 palabras. Ni más, ni menos.
 - La lectura debe completarse en aproximadamente 1 a 1,5 minutos.
 
-ESTRUCTURA OBLIGATORIA DEL TEXTO (en este orden):
+Estructura obligatoria del texto (en este orden):
 1. Título principal con emoji (ej: "El misterio de los archivos ocultos 🖥️")
-   - Usa solo mayúscula en la primera palabra y en nombres propios. NUNCA escribas todas las palabras del título en mayúsculas.
+   - Usa solo mayúscula en la primera palabra y en nombres propios. Nunca escribas todas las palabras del título en mayúsculas ni uses mayúscula inicial en cada palabra.
 
 2. Párrafo de introducción (máximo 50 palabras)
-   - Plantea una situación del mundo real o un misterio. NO empieces con "La definición de...". Empieza con el problema o una historia breve.
+   - Plantea una situación del mundo real o un misterio. No empieces con "La definición de...". Empieza con el problema o una historia breve.
 
 3. Subtítulo llamativo + cuerpo central (máximo 120 palabras)
    - En lugar de "Concepto", usa subtítulos como "¿Cómo funciona el truco?" o "Tu escudo de defensa 🛡️".
@@ -287,14 +287,15 @@ ESTRUCTURA OBLIGATORIA DEL TEXTO (en este orden):
 6. Párrafo de cierre y transición al juego (máximo 30 palabras)
    - Llama a la acción conectando lo leído con la actividad o juego que sigue.
 
-REGLAS DE ESTILO:
+Reglas de estilo:
 - Genera contenido en HTML válido. Usa: <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>, <blockquote>.
-- Mayúsculas solo al inicio de oración y en nombres propios (incluido "Cyber Imperium"). No uses palabras completas en mayúsculas (como IMPORTANTE, NUNCA, etc.).
+- Mayúsculas solo al inicio de la oración, después de un punto y en nombres propios (incluido "Cyber Imperium"). No uses palabras completas en mayúsculas ni capitalices la primera letra de cada palabra si no es un nombre propio.
 - Incluye emojis relevantes en los títulos y subtítulos (🔒, ⚠️, ✅, 🎯, 🛡️, 💡, etc.).
 - Usa un tono amigable, directo y motivador, como si le hablaras a un amigo de la misma edad.
 - Cuando sea apropiado, menciona a los chasquis incas como guardianes de la información segura.
 
-IMPORTANTE: Responde únicamente con el HTML del contenido, sin explicaciones adicionales ni bloques de código markdown.`;
+
+Importante: Responde únicamente con el HTML del contenido, sin explicaciones adicionales ni bloques de código markdown.`;
 
     const raw = await this.generateContent(theoryPrompt);
     // Gemini a veces envuelve el HTML en bloques de código markdown (```html...```).
@@ -1051,7 +1052,7 @@ No incluyas explicaciones ni markdown, solo el JSON puro.`;
    * Sugiere 5 títulos creativos para un curso basado en un tema.
    */
   async suggestCourseTitles(topic: string): Promise<string[]> {
-    const prompt = `Eres un experto en marketing educativo. Sugiere 5 títulos breves, atractivos e impactantes para un curso sobre "${topic}". 
+    const prompt = `Eres un experto en marketing educativo. Sugiere 5 títulos breves, atractivos e impactantes para un curso sobre "${topic}".
     Dirigido a: Estudiantes de 12-14 años.
     Responde ÚNICAMENTE con un array JSON de strings, ejemplo: ["Título 1", "Título 2", ...]`;
 
@@ -1071,11 +1072,11 @@ No incluyas explicaciones ni markdown, solo el JSON puro.`;
   async suggestChapters(courseTitle: string, existingChapters: string[]): Promise<any[]> {
     const prompt = `Eres un diseñador curricular. Para el curso "${courseTitle}", sugiere los SIGUIENTES 3 capítulos posibles que continúen la progresión lógica.
     Capítulos ya existentes: ${existingChapters.join(', ') || 'Ninguno (este es el inicio)'}.
-    
+
     Para cada sugerencia, proporciona:
     - title: Un nombre creativo (evita "Capítulo 1", "Introducción", etc. Sé específico).
     - description: Una descripción breve de lo que se aprenderá.
-    
+
     REGLA GRAMATICAL ESTRICTA para los títulos y descripciones: Usa formato "tipo oración" (sentence case). SOLO la primera letra de la primera palabra y los nombres propios van en mayúscula. TODAS las demás palabras DEBEN ir obligatoriamente en minúscula (ej. "Entendiendo las amenazas", NUNCA "Entendiendo Las Amenazas"). ¡No uses formato de título en inglés!
     Responde ÚNICAMENTE con un array JSON de objetos: [{"title": "...", "description": "..."}, ...]`;
 
