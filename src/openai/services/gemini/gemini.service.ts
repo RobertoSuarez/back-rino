@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   GoogleGenerativeAI,
@@ -243,8 +243,26 @@ INSTRUCCIONES IMPORTANTES:
     chapterTitle: string,
     courseTitle: string,
   ): Promise<string> {
+    const normalizedPrompt = prompt?.trim() ?? '';
+    const normalizedTemaTitle = temaTitle?.trim() ?? '';
+    const normalizedChapterTitle = chapterTitle?.trim() ?? '';
+    const normalizedCourseTitle = courseTitle?.trim() ?? '';
+
+    const missingFields = [
+      !normalizedPrompt ? 'prompt' : null,
+      !normalizedTemaTitle ? 'temaTitle' : null,
+      !normalizedChapterTitle ? 'chapterTitle' : null,
+      !normalizedCourseTitle ? 'courseTitle' : null,
+    ].filter(Boolean);
+
+    if (missingFields.length > 0) {
+      throw new BadRequestException(
+        `Faltan campos requeridos para generar la teoría: ${missingFields.join(', ')}`,
+      );
+    }
+
     // Validar contenido del prompt personalizado
-    if (this.isInappropriateContent(prompt)) {
+    if (this.isInappropriateContent(normalizedPrompt)) {
       throw new Error('❌ No es posible generar contenido con esa solicitud. Por favor, utiliza un prompt apropiado relacionado con ciberseguridad y seguridad digital. Recuerda que Cyber Imperium es una plataforma educativa para estudiantes de 12-14 años.');
     }
 
@@ -252,14 +270,21 @@ INSTRUCCIONES IMPORTANTES:
 
 Tu misión es educar sobre prevención y seguridad digital. Si el tema es sensible (acoso, privacidad, riesgos en línea), trátalo con seriedad pero de forma constructiva: enfócate en cómo protegerse, a quién acudir y qué herramientas usar. Nunca generes contenido que promueva actos dañinos.
 
+Prioridad de generación:
+- La SOLICITUD DEL USUARIO es la instrucción principal y obligatoria.
+- El tema, capítulo y curso son solo contexto secundario para adaptar el contenido.
+- Si la solicitud del usuario contradice o especifica algo diferente al contexto, obedece la solicitud del usuario.
+- El título principal, los subtítulos, ejemplos y consejos deben tratar directamente sobre la solicitud del usuario.
+- No inventes otro tema central ni reutilices un contenido genérico de contraseñas, phishing u otro asunto si no fue solicitado.
+
 Contexto:
-- Tema: ${temaTitle}
-- Capítulo: ${chapterTitle}
-- Curso: ${courseTitle}
+- Tema: ${normalizedTemaTitle}
+- Capítulo: ${normalizedChapterTitle}
+- Curso: ${normalizedCourseTitle}
 - Plataforma: Cyber Imperium
 
-Solicitud del usuario:
-${prompt}
+SOLICITUD DEL USUARIO, TEMA CENTRAL OBLIGATORIO:
+${normalizedPrompt}
 
 Reglas de extensión (muy importantes):
 - Extensión total: entre 250 y 300 palabras. Ni más, ni menos.
@@ -267,7 +292,10 @@ Reglas de extensión (muy importantes):
 
 Estructura obligatoria del texto (en este orden):
 1. Título principal con emoji (ej: "El misterio de los archivos ocultos 🖥️")
-   - Usa solo mayúscula en la primera palabra y en nombres propios. Nunca escribas todas las palabras del título en mayúsculas ni uses mayúscula inicial en cada palabra.
+   - Escribe el título con ortografía correcta del español latinoamericano.
+   - Usa mayúsculas únicamente cuando la norma ortográfica del español lo requiera: primera palabra del título, nombres propios, siglas, acrónimos, marcas, instituciones o términos que oficialmente se escriban con mayúscula.
+   - No uses mayúscula inicial en cada palabra. Incorrecto: "El Misterio De Los Archivos Ocultos". Correcto: "El misterio de los archivos ocultos".
+   - No escribas palabras completas en mayúsculas, salvo siglas reconocidas como HTTPS, URL o 2FA.
 
 2. Párrafo de introducción (máximo 50 palabras)
    - Plantea una situación del mundo real o un misterio. No empieces con "La definición de...". Empieza con el problema o una historia breve.
@@ -289,7 +317,11 @@ Estructura obligatoria del texto (en este orden):
 
 Reglas de estilo:
 - Genera contenido en HTML válido. Usa: <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>, <blockquote>.
-- Mayúsculas solo al inicio de la oración, después de un punto y en nombres propios (incluido "Cyber Imperium"). No uses palabras completas en mayúsculas ni capitalices la primera letra de cada palabra si no es un nombre propio.
+- Usa español latinoamericano claro, natural, gramaticalmente correcto y sin faltas ortográficas.
+- Aplica las mayúsculas estrictamente según la ortografía del español: al inicio de una oración, después de punto, en nombres propios, siglas, acrónimos, marcas, instituciones y plataformas como "Cyber Imperium".
+- En títulos y subtítulos (<h2> y <h3>), usa estilo de oración en español: solo la primera palabra inicia con mayúscula, salvo nombres propios o términos que por norma deban llevarla. No uses capitalización de título ni pongas mayúscula inicial en cada palabra.
+- Antes de responder, revisa mentalmente el texto para corregir tildes, concordancia, puntuación, uso de mayúsculas y errores ortográficos.
+- No uses palabras completas en mayúsculas salvo siglas reconocidas como HTTPS, URL, 2FA o IA.
 - Incluye emojis relevantes en los títulos y subtítulos (🔒, ⚠️, ✅, 🎯, 🛡️, 💡, etc.).
 - Usa un tono amigable, directo y motivador, como si le hablaras a un amigo de la misma edad.
 - Cuando sea apropiado, menciona a los chasquis incas como guardianes de la información segura.
@@ -297,10 +329,48 @@ Reglas de estilo:
 
 Importante: Responde únicamente con el HTML del contenido, sin explicaciones adicionales ni bloques de código markdown.`;
 
-    const raw = await this.generateContent(theoryPrompt);
+    const generationConfig = {
+      temperature: 0.55,
+      topK: 40,
+      topP: 0.9,
+      maxOutputTokens: 1024,
+    };
+
+    const safetySettings = [
+      {
+        category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+        threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+      },
+    ];
+
+    const model = await this.ensureModel();
+
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: theoryPrompt }] }],
+      generationConfig,
+      safetySettings,
+    });
+
+    const response: any = result.response;
+    const raw = response.text();
+
     // Gemini a veces envuelve el HTML en bloques de código markdown (```html...```).
     // Este strip los elimina antes de retornar.
-    return raw.replace(/^```(?:html|json|markdown)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+    const cleaned = raw.replace(/^```(?:html|json|markdown)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+
+    return cleaned;
   }
 
   /**

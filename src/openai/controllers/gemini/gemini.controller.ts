@@ -1,46 +1,127 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { GeminiService } from '../../services/gemini/gemini.service';
 import { AuthGuard } from '../../../user/guards/auth/auth.guard';
 
 class GenerateCourseDescriptionDto {
+  @IsString()
+  @IsNotEmpty()
   title: string;
 }
 
 class GenerateChapterDescriptionDto {
+  @IsString()
+  @IsNotEmpty()
   chapterTitle: string;
+
+  @IsString()
+  @IsNotEmpty()
   courseTitle: string;
+
+  @IsString()
+  @IsNotEmpty()
   courseDescription: string;
 }
 
 class GenerateTemaContentDto {
+  @IsString()
+  @IsNotEmpty()
   temaTitle: string;
+
+  @IsString()
+  @IsOptional()
+  title?: string;
+
+  @IsString()
+  @IsOptional()
+  topicTitle?: string;
+
+  @IsString()
+  @IsNotEmpty()
   chapterTitle: string;
+
+  @IsString()
+  @IsNotEmpty()
   courseTitle: string;
 }
 
 class GenerateTheoryWithPromptDto {
+  @IsString()
+  @IsNotEmpty()
   prompt: string;
+
+  @IsString()
+  @IsNotEmpty()
   temaTitle: string;
+
+  @IsString()
+  @IsOptional()
+  title?: string;
+
+  @IsString()
+  @IsOptional()
+  topicTitle?: string;
+
+  @IsString()
+  @IsNotEmpty()
   chapterTitle: string;
+
+  @IsString()
+  @IsNotEmpty()
   courseTitle: string;
 }
 
 class GenerateCourseDescriptionWithPromptDto {
+  @IsString()
+  @IsNotEmpty()
   courseTitle: string;
+
+  @IsString()
+  @IsNotEmpty()
   prompt: string;
 }
 
 class GenerateChapterDescriptionWithPromptDto {
+  @IsString()
+  @IsNotEmpty()
   chapterTitle: string;
+
+  @IsString()
+  @IsNotEmpty()
   courseTitle: string;
+
+  @IsString()
+  @IsNotEmpty()
   courseDescription: string;
+
+  @IsString()
+  @IsNotEmpty()
   prompt: string;
 }
 
 class GenerateTemaDescriptionWithPromptDto {
+  @IsString()
+  @IsNotEmpty()
   temaTitle: string;
+
+  @IsString()
+  @IsOptional()
+  title?: string;
+
+  @IsString()
+  @IsOptional()
+  topicTitle?: string;
+
+  @IsString()
+  @IsNotEmpty()
   chapterTitle: string;
+
+  @IsString()
+  @IsNotEmpty()
   courseTitle: string;
+
+  @IsString()
+  @IsNotEmpty()
   prompt: string;
 }
 
@@ -48,6 +129,14 @@ class GenerateTemaDescriptionWithPromptDto {
 @UseGuards(AuthGuard)
 export class GeminiController {
   constructor(private geminiService: GeminiService) {}
+
+  private resolveTemaTitle(payload: {
+    temaTitle?: string;
+    title?: string;
+    topicTitle?: string;
+  }): string | undefined {
+    return payload.temaTitle ?? payload.title ?? payload.topicTitle;
+  }
 
   @Post('generate-course-description')
   async generateCourseDescription(@Body() payload: any) {
@@ -70,7 +159,7 @@ export class GeminiController {
   @Post('generate-tema-content')
   async generateTemaContent(@Body() payload: any) {
     const content = await this.geminiService.generateTemaContent(
-      payload.temaTitle,
+      this.resolveTemaTitle(payload),
       payload.chapterTitle,
       payload.courseTitle,
     );
@@ -81,10 +170,11 @@ export class GeminiController {
   async generateTheoryWithPrompt(@Body() payload: GenerateTheoryWithPromptDto) {
     const theory = await this.geminiService.generateTheoryWithPrompt(
       payload.prompt,
-      payload.temaTitle,
+      this.resolveTemaTitle(payload),
       payload.chapterTitle,
       payload.courseTitle,
     );
+
     return { theory };
   }
 
@@ -111,7 +201,7 @@ export class GeminiController {
   @Post('generate-tema-description-with-prompt')
   async generateTemaDescriptionWithPrompt(@Body() payload: GenerateTemaDescriptionWithPromptDto) {
     const description = await this.geminiService.generateTemaDescriptionWithPrompt(
-      payload.temaTitle,
+      this.resolveTemaTitle(payload),
       payload.chapterTitle,
       payload.courseTitle,
       payload.prompt,
